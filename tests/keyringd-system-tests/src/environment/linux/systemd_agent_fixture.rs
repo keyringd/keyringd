@@ -29,14 +29,89 @@ impl SystemdAgentFixture {
                 .environment
                 .systemctl_user(&["start", "keyringd-agent.socket"])
                 .await?;
-            ensure!(
-                started.status.success(),
-                "starting socket failed: {}",
-                started.stderr
-            );
+            if !started.status.success() {
+                let diagnostics = fixture.socket_start_diagnostics().await;
+                anyhow::bail!(
+                    "starting socket failed: {}\nSystemd diagnostics before cleanup:\n{diagnostics}",
+                    started.stderr.trim_end()
+                );
+            }
             Ok::<_, anyhow::Error>(())
         })?;
         Ok(fixture)
+    }
+
+    async fn socket_start_diagnostics(&self) -> String {
+        let mut sections = Vec::new();
+        for (title, program, arguments) in [
+            (
+                "unit status",
+                "systemctl",
+                vec![
+                    "--user",
+                    "status",
+                    "keyringd-agent.socket",
+                    "keyringd-desktop.service",
+                    "--no-pager",
+                    "--full",
+                ],
+            ),
+            (
+                "unit properties",
+                "systemctl",
+                vec![
+                    "--user",
+                    "show",
+                    "keyringd-agent.socket",
+                    "keyringd-desktop.service",
+                    "--property=Id,ActiveState,SubState,Result,Job,MainPID,Listen",
+                ],
+            ),
+            (
+                "pending jobs",
+                "systemctl",
+                vec!["--user", "list-jobs", "--no-pager", "--full"],
+            ),
+            (
+                "unit journal",
+                "journalctl",
+                vec![
+                    "--user",
+                    "--unit=keyringd-agent.socket",
+                    "--unit=keyringd-desktop.service",
+                    "--lines=100",
+                    "--no-pager",
+                    "--output=short-precise",
+                ],
+            ),
+            (
+                "listening Unix sockets",
+                "ss",
+                vec!["--unix", "--listening", "--processes"],
+            ),
+        ] {
+            let body = match self.environment.run(program, &arguments).await {
+                Ok(output) => format!("exit={}\n{}{}", output.status, output.stdout, output.stderr),
+                Err(error) => format!("diagnostic command failed: {error:#}"),
+            };
+            sections.push(format!("[{title}]\n{}", body.trim_end()));
+        }
+
+        let socket = self.environment.agent_socket();
+        let socket_state = match std::fs::symlink_metadata(socket) {
+            Ok(metadata) => format!(
+                "path={}\nexists=true\nfile_type={:?}\nlength={}",
+                socket.display(),
+                metadata.file_type(),
+                metadata.len()
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                format!("path={}\nexists=false", socket.display())
+            }
+            Err(error) => format!("path={}\nmetadata failed: {error}", socket.display()),
+        };
+        sections.push(format!("[activation socket]\n{socket_state}"));
+        sections.join("\n\n")
     }
 }
 
