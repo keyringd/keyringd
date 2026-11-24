@@ -1,0 +1,78 @@
+name: System tests (macOS)
+run-name: macOS system tests (${{ github.ref_name }})
+
+on:
+  schedule:
+    # Monday 03:17 JST (Sunday 18:17 UTC), away from the busy hour boundary.
+    - cron: '17 18 * * 0'
+  workflow_dispatch:
+    inputs:
+      coverage:
+        description: Measure product coverage
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      coverage:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: system-tests-macos-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: '13.0'
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
+
+jobs:
+  test-macos-system:
+    name: System tests
+    env:
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/system/macos
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: tests/keyringd-test-usbip/authenticator-server/gradle/libs.versions.toml
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: macos-15
+      - name: Run macOS system tests
+        run: cargo macos-system-test ${{ inputs.coverage && '--coverage' || '' }}
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload macOS test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: macos-system
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: system-macos
+          directory: target/coverage/system-macos

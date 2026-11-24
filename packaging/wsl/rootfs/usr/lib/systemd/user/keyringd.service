@@ -1,0 +1,9 @@
+[Unit]
+Description=Keyringd WSL proxy
+Documentation=https://github.com/keyringd/keyringd
+Requires=keyringd.socket
+After=keyringd.socket
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/keyringd-wsl-proxy --windows-exe /usr/libexec/keyringd/keyringd.exe

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="640" viewBox="0 0 1040 640" role="img" aria-labelledby="title desc">
+  <title id="title">Events and commands in the GUI</title>
+  <desc id="desc">The native UI translates user input to events. The shared model updates state and returns commands. The OS host renders the state, runs commands, and sends application results back as events.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#576d68"/></marker></defs>
+  <style>text{font-family:'Segoe UI',sans-serif;fill:#183c35;font-size:17px}.heading{font-size:21px;font-weight:650}.small{font-size:15px;fill:#526b65}.box{fill:#fff;stroke:#bdcdc5;stroke-width:1.5}.shared{fill:#e0eee6;stroke:#88ad99;stroke-width:1.5}.line{fill:none;stroke:#576d68;stroke-width:2;marker-end:url(#arrow)}</style>
+  <rect width="1040" height="640" rx="12" fill="#f6f8f7"/>
+  <text x="30" y="36" class="small">UI thread: input → update state → render → run command</text>
+  <rect x="35" y="76" width="255" height="110" rx="10" class="box"/>
+  <text x="162" y="117" text-anchor="middle" class="heading">Native UI</text>
+  <text x="162" y="149" text-anchor="middle" class="small">Buttons, input fields, windows</text>
+  <rect x="390" y="76" width="270" height="110" rx="10" class="shared"/>
+  <text x="525" y="117" text-anchor="middle" class="heading">Shared window model</text>
+  <text x="525" y="149" text-anchor="middle" class="small">update(Event) → Option&lt;Command&gt;</text>
+  <path d="M290 112H390" class="line"/>
+  <text x="340" y="97" text-anchor="middle" class="small">Event</text>
+  <path d="M390 165H290" class="line"/>
+  <text x="340" y="205" text-anchor="middle" class="small">Render state</text>
+  <rect x="755" y="76" width="250" height="110" rx="10" class="box"/>
+  <text x="880" y="117" text-anchor="middle" class="heading">OS command handler</text>
+  <text x="880" y="149" text-anchor="middle" class="small">Command Handler / Host</text>
+  <path d="M660 130H755" class="line"/>
+  <text x="707" y="112" text-anchor="middle" class="small">Command</text>
+  <text x="880" y="232" text-anchor="middle" class="small">Opens windows and shows notifications</text>
+  <path d="M880 186V340" class="line"/>
+  <text x="860" y="295" text-anchor="end" class="small">Start background operation</text>
+  <rect x="755" y="340" width="250" height="110" rx="10" class="shared"/>
+  <text x="880" y="381" text-anchor="middle" class="heading">Application</text>
+  <text x="880" y="413" text-anchor="middle" class="small">Profiles, registration, key ops</text>
+  <rect x="390" y="340" width="270" height="110" rx="10" class="box"/>
+  <text x="525" y="381" text-anchor="middle" class="heading">Deliver events to UI</text>
+  <text x="525" y="413" text-anchor="middle" class="small">UiEventSender / OS dispatch</text>
+  <path d="M755 395H660" class="line"/>
+  <text x="707" y="373" text-anchor="middle" class="small">Result</text>
+  <path d="M525 340V186" class="line"/>
+  <text x="545" y="263" class="small">Completion and progress events</text>
+  <text x="545" y="288" class="small">Profile change notifications</text>
+  <rect x="35" y="340" width="255" height="110" rx="10" class="box"/>
+  <text x="162" y="381" text-anchor="middle" class="heading">Authenticator prompts</text>
+  <text x="162" y="413" text-anchor="middle" class="small">PIN, QR code, or touch</text>
+  <path d="M290 395H390" class="line"/>
+  <text x="340" y="373" text-anchor="middle" class="small">Request</text>
+  <text x="35" y="513" class="small">The model owns state transitions. The host renders state and runs commands.</text>
+  <text x="35" y="545" class="small">Run synchronous list updates through spawn_blocking and return the results to the UI thread.</text>
+  <text x="35" y="577" class="small">Green: shared state and operation logic. White: native UI and event handling.</text>
+  <text x="35" y="609" class="small">ActionId identifies the operation and routes UI events. ExecutionId records the originating ActionId.</text>
+</svg>

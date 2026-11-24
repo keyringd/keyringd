@@ -1,0 +1,21 @@
+[package]
+name = "keyringd-fido"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+base64.workspace = true
+http.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["raw_value"] }
+sha2.workspace = true
+spki.workspace = true
+thiserror.workspace = true
+unicode-normalization.workspace = true
+zeroize = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+hex-literal.workspace = true
+p256.workspace = true
+keyringd-testkit = { path = "../tests/keyringd-testkit" }

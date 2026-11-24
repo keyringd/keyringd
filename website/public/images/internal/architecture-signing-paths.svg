@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="1060" viewBox="0 0 1160 1060" role="img" aria-labelledby="title desc">
+  <title id="title">Calls from signing workflows to key services</title>
+  <desc id="desc">The Device Key’s FIDO path uses FidoClient’s internal authenticator and the OS key service. The external Passkey path uses PasskeyService and FidoClient. Both paths share FIDO request and response handling. Core converts the authenticator response to the SSH signature format.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#576d68"/></marker></defs>
+  <style>text{font-family:'Segoe UI',sans-serif;fill:#183c35;font-size:17px}.heading{font-size:21px;font-weight:650}.code{font-size:17px}.small{font-size:15px;fill:#526b65}.box{fill:#fff;stroke:#bdcdc5;stroke-width:1.5}.shared{fill:#e0eee6;stroke:#88ad99;stroke-width:1.5}.execution{fill:#fbf4e6;stroke:#c8ae78;stroke-width:1.5}.line{fill:none;stroke:#576d68;stroke-width:2;marker-end:url(#arrow)}</style>
+  <rect width="1160" height="1060" rx="12" fill="#f6f8f7"/>
+  <text x="30" y="36" class="small">KeyringdAgentRequestHandler → KeyringdApplication → selected identity</text>
+  <rect x="30" y="65" width="725" height="85" rx="10" class="execution"/>
+  <text x="392" y="99" text-anchor="middle" class="heading">SignWithDeviceKeyExecution</text>
+  <text x="392" y="128" text-anchor="middle" class="small">Device Certificate or Device Key identity</text>
+  <rect x="780" y="65" width="350" height="85" rx="10" class="execution"/>
+  <text x="955" y="99" text-anchor="middle" class="heading">SignWithPasskeyExecution</text>
+  <text x="955" y="128" text-anchor="middle" class="small">Passkey identity</text>
+  <path d="M205 150V233" class="line"/>
+  <path d="M580 150V233" class="line"/>
+  <path d="M955 150V233" class="line"/>
+  <text x="222" y="198">Ecdsa</text>
+  <text x="410" y="198" class="small">SecurityKey / WebAuthn</text>
+  <text x="793" y="186" class="small">sign_ssh</text>
+  <text x="793" y="211" class="small">SecurityKey / WebAuthn</text>
+  <rect x="30" y="235" width="350" height="123" rx="10" class="shared"/>
+  <text x="205" y="273" text-anchor="middle" class="heading">EcdsaSshSigner</text>
+  <text x="205" y="307" text-anchor="middle">Build a standard ECDSA signature</text>
+  <text x="205" y="335" text-anchor="middle" class="small">Pass SHA-256 digest</text>
+  <rect x="405" y="235" width="350" height="123" rx="10" class="shared"/>
+  <text x="580" y="271" text-anchor="middle" class="code">SkEcdsaSshSigner</text>
+  <text x="580" y="300" text-anchor="middle" class="code">WebAuthnSkEcdsaSshSigner</text>
+  <text x="580" y="335" text-anchor="middle" class="small">Selected by the profile’s signature format</text>
+  <rect x="780" y="235" width="350" height="123" rx="10" class="shared"/>
+  <text x="955" y="271" text-anchor="middle" class="code">SkEcdsaSshSigner</text>
+  <text x="955" y="300" text-anchor="middle" class="code">WebAuthnSkEcdsaSshSigner</text>
+  <text x="955" y="335" text-anchor="middle" class="small">Selected by the profile’s signature format</text>
+  <path d="M580 358V428" class="line"/>
+  <path d="M955 358V428" class="line"/>
+  <rect x="405" y="430" width="350" height="123" rx="10" class="box"/>
+  <text x="580" y="466" text-anchor="middle" class="code">DeviceKeyAssertionProvider</text>
+  <text x="580" y="500" text-anchor="middle">Set RP, credential, and UP request</text>
+  <text x="580" y="529" text-anchor="middle" class="small">client-device selects internal transport</text>
+  <rect x="780" y="430" width="350" height="123" rx="10" class="box"/>
+  <text x="955" y="466" text-anchor="middle" class="code">PasskeyAssertionProvider</text>
+  <text x="955" y="500" text-anchor="middle">Get an external Passkey assertion</text>
+  <text x="955" y="529" text-anchor="middle" class="small">Use shared FIDO request handling</text>
+  <path d="M205 358V858" class="line"/>
+  <path d="M580 553V573" class="line"/>
+  <path d="M955 553V573" class="line"/>
+  <rect x="405" y="575" width="350" height="90" rx="10" class="shared"/>
+  <text x="580" y="612" text-anchor="middle" class="code">FidoClient / Internal</text>
+  <text x="580" y="642" text-anchor="middle" class="small">Client data, CTAP, response validation</text>
+  <path d="M580 665V713" class="line"/>
+  <rect x="405" y="715" width="350" height="90" rx="10" class="box"/>
+  <text x="580" y="752" text-anchor="middle" class="code">DeviceKeyFidoAuthenticator</text>
+  <text x="580" y="782" text-anchor="middle" class="small">Build authenticator data and DER signature</text>
+  <path d="M580 805V858" class="line"/>
+  <rect x="780" y="575" width="350" height="90" rx="10" class="box"/>
+  <text x="955" y="612" text-anchor="middle" class="code">PasskeyService::get_assertions</text>
+  <text x="955" y="642" text-anchor="middle" class="small">Prompts, cancellation, transport selection</text>
+  <path d="M955 665V713" class="line"/>
+  <rect x="780" y="715" width="350" height="90" rx="10" class="shared"/>
+  <text x="955" y="752" text-anchor="middle" class="code">FidoClient (-fido-client)</text>
+  <text x="955" y="782" text-anchor="middle" class="small">Client data, CTAP, response validation</text>
+  <path d="M955 805V858" class="line"/>
+  <rect x="30" y="860" width="350" height="110" rx="10" class="box"/>
+  <text x="205" y="898" text-anchor="middle" class="heading">DeviceKeyService::sign</text>
+  <text x="205" y="937" text-anchor="middle">CNG / TPM / Secure Enclave</text>
+  <rect x="405" y="860" width="350" height="110" rx="10" class="box"/>
+  <text x="580" y="898" text-anchor="middle" class="code">DeviceKeyService::sign</text>
+  <text x="580" y="937" text-anchor="middle">Report key auth settings and sign</text>
+  <rect x="780" y="860" width="350" height="110" rx="10" class="box"/>
+  <text x="955" y="898" text-anchor="middle" class="code">External Authenticator</text>
+  <text x="955" y="937" text-anchor="middle">USB / Hybrid</text>
+  <text x="580" y="1021" text-anchor="middle" class="small">signing::ssh formats SSH signatures. signing::fido defines the providers and Device Key authenticator.</text>
+</svg>

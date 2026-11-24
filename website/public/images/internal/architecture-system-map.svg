@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="760" viewBox="0 0 1040 760" role="img" aria-labelledby="title desc">
+  <title id="title">Keyringd at runtime</title>
+  <desc id="desc">An SSH client connects directly to the server and asks the Keyringd agent to sign. The agent and native UI share KeyringdApplication. The application uses the hardware-backed key service, profile repository, and external Passkey service.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#576d68"/></marker></defs>
+  <style>text{font-family:'Segoe UI',sans-serif;fill:#183c35;font-size:17px}.heading{font-size:21px;font-weight:650}.small{font-size:15px;fill:#526b65}.line{fill:none;stroke:#576d68;stroke-width:2;marker-end:url(#arrow)}.box{fill:#fff;stroke:#bdcdc5;stroke-width:1.5}.core{fill:#e0eee6;stroke:#88ad99;stroke-width:1.5}</style>
+  <rect width="1040" height="760" rx="12" fill="#f6f8f7"/>
+  <rect x="40" y="180" width="960" height="395" rx="18" fill="#edf2ef" stroke="#bdcdc5" stroke-dasharray="6 5"/>
+  <text x="520" y="207" text-anchor="middle" class="small">Keyringd native app process</text>
+
+  <rect x="70" y="30" width="260" height="85" rx="10" class="box"/>
+  <text x="200" y="64" text-anchor="middle" class="heading">SSH client / Git</text>
+  <text x="200" y="92" text-anchor="middle" class="small">Initiates connections and signing</text>
+  <rect x="710" y="30" width="260" height="85" rx="10" class="box"/>
+  <text x="840" y="64" text-anchor="middle" class="heading">SSH server</text>
+  <text x="840" y="92" text-anchor="middle" class="small">Trusts registered public keys and CAs</text>
+  <path d="M330 73H710" class="line"/>
+  <text x="520" y="57" text-anchor="middle" class="small">SSH connection and signature verification</text>
+
+  <path d="M200 115V230" class="line"/>
+  <text x="219" y="153" class="small">socket / pipe</text>
+  <rect x="70" y="230" width="260" height="75" rx="10" class="box"/>
+  <text x="200" y="260" text-anchor="middle" class="heading">SSH agent</text>
+  <text x="200" y="287" text-anchor="middle" class="small">List identities and request signatures</text>
+  <rect x="710" y="230" width="260" height="75" rx="10" class="box"/>
+  <text x="840" y="260" text-anchor="middle" class="heading">Native UI</text>
+  <text x="840" y="287" text-anchor="middle" class="small">Profiles and authenticator prompts</text>
+  <path d="M200 305V323H435V345" class="line"/>
+  <path d="M840 305V323H605V345" class="line"/>
+  <rect x="340" y="345" width="360" height="80" rx="10" class="core"/>
+  <text x="520" y="378" text-anchor="middle" class="heading">KeyringdApplication</text>
+  <text x="520" y="406" text-anchor="middle" class="small">Profiles, registration, key operations, signing</text>
+
+  <path d="M435 425V448H200V475" class="line"/>
+  <path d="M520 425V475" class="line"/>
+  <path d="M605 425V448H840V475" class="line"/>
+  <rect x="70" y="475" width="260" height="65" rx="10" class="box"/>
+  <text x="200" y="514" text-anchor="middle" class="heading">DeviceKeyService</text>
+  <rect x="390" y="475" width="260" height="65" rx="10" class="box"/>
+  <text x="520" y="514" text-anchor="middle" class="heading">ProfileRepository</text>
+  <rect x="710" y="475" width="260" height="65" rx="10" class="box"/>
+  <text x="840" y="514" text-anchor="middle" class="heading">PasskeyService</text>
+
+  <path d="M200 540V625" class="line"/>
+  <path d="M520 540V625" class="line"/>
+  <path d="M840 540V625" class="line"/>
+  <rect x="70" y="625" width="260" height="85" rx="10" class="box"/>
+  <text x="200" y="660" text-anchor="middle" class="heading">Hardware key</text>
+  <text x="200" y="688" text-anchor="middle" class="small">TPM / Secure Enclave</text>
+  <rect x="390" y="625" width="260" height="85" rx="10" class="box"/>
+  <text x="520" y="660" text-anchor="middle" class="heading">Profile storage</text>
+  <text x="520" y="688" text-anchor="middle" class="small">Profiles and key references (JSON)</text>
+  <rect x="710" y="625" width="260" height="85" rx="10" class="box"/>
+  <text x="840" y="660" text-anchor="middle" class="heading">External Authenticator</text>
+  <text x="840" y="688" text-anchor="middle" class="small">USB key / smartphone</text>
+  <text x="520" y="744" text-anchor="middle" class="small">Keyringd signs. The SSH client connects directly to the server.</text>
+</svg>

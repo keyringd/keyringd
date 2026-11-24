@@ -1,0 +1,5 @@
+error: step description must name the concrete setup, operation, or expected result
+ --> tests/ui/vague_step_description.rs:6:14
+  |
+6 |         when "Run the operation under test" {}
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,69 @@
+= Adding or replacing a computer
+:description: Set up another computer using your existing passkey, understand which server registrations can stay, and stop a computer's access when retiring it.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Keyringd creates a Device Key protected by your computer's TPM or Secure Enclave. The private key cannot be extracted, so each new computer needs a new Device Key.
+
+Whether you need to update your servers depends on which public keys you registered. The steps below apply both to adding another computer and to replacing your current one.
+
+== What changes on the server?
+
+=== If you registered the passkey as a CA
+
+A certificate authority (CA) signs certificates for other keys. When you registered *Certificate Authority Public Key*, you told the server to accept Device Certificates signed by that passkey, rather than registering each computer's Device Key separately.
+
+On the new computer, use the same passkey to certify the new Device Key. The server can verify the new Device Certificate with the CA public key it already trusts, so you do not need to register the new Device Key or certificate.
+
+=== If you registered public keys directly
+
+If you registered *Device Key Public Key*, the server accepts that computer's key. The new computer has a different Device Key, so its public key needs to be registered too.
+
+If you also registered *Passkey Public Key*, that registration remains usable on the new computer. Recovering the same passkey lets you connect through your passkey or security key, even before you register the new Device Key. Registering the new Device Key allows everyday connections without passkey authentication.
+
+See link:{site-path}guides/public-key-registration/[Public key registration] if you are unsure which setup you used.
+
+== Set up the new computer
+
+. Follow link:{site-path}installation/[Installation] to install Keyringd and configure OpenSSH.
+. Add a Profile and choose *Use an existing passkey*.
+. Use the Android device, iPhone, or security key where your existing passkey is available. If several passkeys are shown, select the one used for the original Profile.
+. Follow the prompts to recover the passkey and certify the new computer's Device Key.
+
+You do not need to copy the old Profile. Recovery may ask you to verify several times. With Android or iPhone, scan the new QR code shown for each step.
+
+For any public-key registrations you need to add, follow link:{site-path}guides/public-key-registration/[Public key registration].
+
+=== Other settings to update
+
+If your SSH configuration uses `IdentityFile` to select a Device Key or certificate, update that file with the new computer's public key or certificate. See link:{site-path}usage/#_select_one_identity_for_a_host[Select one identity for a host].
+
+If you sign Git commits, update your signing configuration and public-key registrations. See link:{site-path}guides/git-signing/[Git signing].
+
+== Retire a computer
+
+Creating a Profile on another computer with the same passkey does not revoke the existing Device Key or its certificate. You can keep using both computers for as long as needed.
+
+Before handing over a computer, remove its Profiles in Keyringd or perform a clean installation of the OS. Also delete any backups or copies of the Profile data.
+
+== If a computer is lost or compromised
+
+If a computer is lost or compromised, remove the relevant public-key registrations from each server:
+
+* For certificate authentication, remove the *Certificate Authority Public Key* registration. This also prevents certificate authentication from other computers using the same passkey.
+* For directly registered keys, remove the affected computer's *Device Key Public Key* registration.
+
+If both certificate authentication and directly registered keys were allowed, remove the registrations for both. After removing a CA registration, use a new passkey to set up certificate authentication again on the computers you continue to use.
+
+== If the passkey is lost or compromised
+
+If your security key or passkey is lost or compromised, remove its public-key registrations from each server:
+
+* Remove *Certificate Authority Public Key* to stop accepting certificates signed by that passkey. This affects every computer using those certificates.
+* Remove *Passkey Public Key* if it was registered for direct SSH authentication.
+
+Create a Profile with a new passkey and register its public keys as described in link:{site-path}getting-started/[Getting started].
+
+See link:{site-path}security-model/[Security Model] for the passkey's scope of authority.

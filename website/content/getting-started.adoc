@@ -1,0 +1,98 @@
+= Getting started
+:description: Create a hardware-protected SSH identity, choose how your server trusts it, and make your first connection.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Set up Keyringd, register a public key or certificate authority on your server, and make your first SSH connection.
+
+== What you need
+
+* A Linux or Windows computer with a usable TPM 2.0, or a Mac with Secure Enclave. See link:{site-path}installation/[platform requirements] before installing.
+* An Android device running Android 14 or later, an iPhone running iOS 16 or later, or a FIDO2 certified security key.
+* An SSH destination where you can register a public key or authorize an SSH certificate authority.
+
+Using a phone passkey requires Bluetooth Low Energy (BLE) support and network access on both the computer and the phone.
+
+== 1. Install and select the agent
+
+Follow the link:{site-path}installation/[installation guide] for your platform, then launch the app.
+
+* *Linux:* choose *Configure SSH Clients… → Configure*.
+* *Windows:* choose *Configure SSH Clients… → SSH_AUTH_SOCK: Configure*.
+* *macOS:* choose *Configure SSH Clients… → Configure* to make Keyringd the default. To use Keyringd for just one command, see the dedicated socket example in link:{site-path}installation/#_macos[Installation].
+* *WSL2:* use the Windows app for Profiles and key prompts; configure the proxy socket inside WSL as shown in the installation guide.
+
+This selects Keyringd for your client. It does not grant access to a server.
+
+== 2. Create a Profile
+
+. Add a Profile and give it a name you will recognize, such as `Personal` or `Work`.
+. Choose *Create a new passkey*.
+. Choose an Android device, an iPhone, or a security key.
++
+For Android or iPhone, scan the QR code displayed in the app with your phone’s camera, then follow the instructions on your phone to create a passkey.
++
+For a security key, connect it to your computer and follow the prompts to enter its PIN or verify with biometrics, and touch the key when requested.
+. Follow the next prompt to certify this computer's Device Key with your passkey. For Android or iPhone, scan the new QR code with the same phone and approve the operation. For a security key, complete the requested verification again.
+
+If you already created a passkey on another computer, choose *Use an existing passkey* instead. See link:{site-path}guides/adding-or-replacing-a-computer/[adding another computer].
+
+Keep the default *Advanced settings* for your first connection. See link:{site-path}guides/public-key-registration/#_key_and_signature_formats[Key and signature formats] if you need to change the SSH authentication signature format.
+
+== 3. Register your public key on the server
+
+Open *Public Keys…* for the Profile you created.
+
+[[own-server]]
+=== For servers that support SSH certificates
+
+Your *passkey*, stored on your phone or security key, acts as the certificate authority (CA). It issues a *Device Certificate* for this computer's hardware-protected *Device Key*. Registering the CA's public key lets the server accept that certificate.
+
+. Copy the *Certificate Authority Public Key* from *Public Keys…*.
+. On the server, append the complete copied line to `~/.ssh/authorized_keys` for the account you want to access. Keep all options in the copied line.
+
+Everyday connections use the Device Key without passkey authentication. When you replace your computer, use the same passkey to certify its new Device Key; the server's CA registration stays the same.
+
+[[hosted-service]]
+=== For servers that do not support SSH certificates
+
+For example, a personal GitHub account uses this setup. Keyringd provides two public keys under *For servers that do not support SSH certificates* in *Public Keys…*:
+
+* *Device Key:* copy this public key and register it on the server to connect using this computer's hardware-protected key, without passkey authentication. When you replace your computer, you need to register the new computer's Device Key.
+* *Passkey:* copy this public key and register it on the server to connect using your passkey or security key. Each connection requires authenticator interaction, but you can recover the same passkey on a new computer and connect without registering a new public key.
+
+We recommend registering both. Use the Device Key for everyday connections, and fall back to the passkey after replacing your computer, until you register the new Device Key.
+
+Use *Copy Device + Passkey Public Keys* to copy both public keys together, then append the two copied lines to the server account's `~/.ssh/authorized_keys`.
+
+For GitHub, copy each public key individually and add it as a separate authentication key in your account's SSH-key settings. See link:{site-path}guides/public-key-registration/[Public key registration] for registration details.
+
+== 4. Test the connection
+
+If this is your first connection to the server, run `ssh user@server` in a terminal with your username and hostname, and accept the host key only if its fingerprint matches the one provided by your server administrator.
+
+Open *Test SSH connection…* in the app and select the identity for the setup you chose:
+
+* If you registered the passkey public key for SSH certificate authentication, test the *Device Certificate*.
+* If you registered public keys directly, test the *Device Key* and *Passkey* separately if you registered both, or the single key you registered.
+
+Then test the command-line client, replacing `user` with your server account's username and `server` with its hostname:
+
+[source,sh]
+----
+ssh user@server
+----
+
+With CA trust, everyday connections sign with the Device Key; your passkey does not need to participate in each login.
+
+If the test fails, follow link:{site-path}guides/troubleshooting/[the connection checklist].
+
+== What to do next
+
+* link:{site-path}how-it-works/[Understand the two-key design] and the three identities an SSH client sees.
+* link:{site-path}usage/[Manage Profiles] and select a particular key for a host.
+* link:{site-path}guides/adding-or-replacing-a-computer/[Add or replace a computer] without copying a private key.
+* link:{site-path}using-keyringd-safely/[Use Keyringd safely] by protecting your passkey and computer.
+* link:{site-path}security-model/[Read the security model], especially the difference between replacement and revocation.

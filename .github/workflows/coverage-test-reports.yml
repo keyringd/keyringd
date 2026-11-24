@@ -1,0 +1,157 @@
+name: Coverage and test reports
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: coverage-reports-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
+  SURGE_DOMAIN: keyringd-test-reports.surge.sh
+
+jobs:
+  unit-integration:
+    name: UT/IT
+    uses: ./.github/workflows/ci.yml
+    with:
+      coverage: true
+
+  system-linux:
+    name: ST Linux
+    uses: ./.github/workflows/system-tests-linux.yml
+    with:
+      coverage: true
+
+  system-windows:
+    name: ST Windows
+    uses: ./.github/workflows/system-tests-windows.yml
+    with:
+      coverage: true
+
+  system-macos:
+    name: ST macOS
+    uses: ./.github/workflows/system-tests-macos.yml
+    with:
+      coverage: true
+
+  system-wsl:
+    name: ST WSL
+    uses: ./.github/workflows/system-tests-wsl.yml
+    with:
+      coverage: true
+
+  render-reports:
+    needs: [unit-integration, system-linux, system-windows, system-macos, system-wsl]
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Install report build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libdbus-1-dev libudev-dev
+      - name: Install grcov
+        run: |
+          curl --fail --location --retry 3 \
+            https://github.com/mozilla/grcov/releases/download/v0.10.8/grcov-x86_64-unknown-linux-gnu.tar.bz2 \
+            --output "$RUNNER_TEMP/grcov.tar.bz2"
+          mkdir -p "$RUNNER_TEMP/grcov"
+          tar -xjf "$RUNNER_TEMP/grcov.tar.bz2" -C "$RUNNER_TEMP/grcov"
+          echo "$RUNNER_TEMP/grcov" >> "$GITHUB_PATH"
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-24.04
+      - name: Download test results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: test-results-*
+          merge-multiple: true
+          path: results
+      - name: Generate test reports
+        env:
+          SOURCE_BASE_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}
+        run: cargo xtask test-report results reports --source-base-url "$SOURCE_BASE_URL"
+      - name: Download coverage results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          path: coverage-results
+      - name: Aggregate product coverage
+        run: |
+          cargo xtask coverage-report coverage-results reports/coverage \
+            --require ut/linux --require ut/windows --require ut/macos \
+            --require system-ubuntu/linux --require system-fedora/linux \
+            --require system/windows --require system/macos \
+            --require system-ubuntu/wsl --require system-fedora/wsl
+          python3 - <<'PY'
+          from pathlib import Path
+          index = Path('reports/index.html')
+          html = index.read_text()
+          link = '<p><a href="coverage/html/index.html">Product coverage (all OS, UT/IT + System tests)</a></p>'
+          index.write_text(html.replace('</body>', link + '</body>'))
+          PY
+      - name: Upload generated reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: published-test-reports
+          path: reports/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+  publish-reports:
+    needs: render-reports
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: test-report-publication
+      cancel-in-progress: false
+    environment:
+      name: test-reports
+      url: ${{ steps.deployment.outputs.url }}
+    steps:
+      - name: Check Surge credentials
+        env:
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+        run: |
+          if [ -z "$SURGE_TOKEN" ]; then
+            echo '::error::Set the SURGE_TOKEN repository Actions secret before publishing test reports.'
+            exit 1
+          fi
+      - name: Download rendered reports
+        uses: actions/download-artifact@v8
+        with:
+          name: published-test-reports
+          path: reports
+      - name: Deploy reports to Surge
+        id: deployment
+        env:
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+        run: |
+          npm exec --yes --package=surge@0.44.4 -- surge ./reports "$SURGE_DOMAIN"
+          echo "url=https://$SURGE_DOMAIN" >> "$GITHUB_OUTPUT"
+      - name: Link published reports
+        env:
+          REPORT_URL: ${{ steps.deployment.outputs.url }}
+        run: printf '[Latest reports](%s)\n' "$REPORT_URL" >> "$GITHUB_STEP_SUMMARY"

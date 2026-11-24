@@ -1,0 +1,5 @@
+error: case must start with a letter and be convertible to a Rust identifier
+ --> tests/ui/invalid_case_name.rs:4:10
+  |
+4 |     case "123 invalid" {
+  |          ^^^^^^^^^^^^^

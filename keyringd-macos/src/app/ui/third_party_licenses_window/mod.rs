@@ -1,0 +1,5 @@
+#[allow(clippy::module_inception)]
+mod third_party_licenses_window;
+mod third_party_licenses_window_action_target;
+pub(crate) use third_party_licenses_window::ThirdPartyLicensesWindow;
+use third_party_licenses_window_action_target::ThirdPartyLicensesWindowActionTarget;

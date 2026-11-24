@@ -1,0 +1,53 @@
+name: Update product version
+description: Set or bump the shared workspace version and refresh Cargo.lock on Ubuntu.
+inputs:
+  operation:
+    description: Version operation (set or bump).
+    required: true
+  version:
+    description: Product SemVer for the set operation.
+    default: ''
+outputs:
+  version:
+    description: Updated workspace version.
+    value: ${{ steps.version.outputs.version }}
+runs:
+  using: composite
+  steps:
+    - name: Install Rust stable
+      shell: bash
+      run: |
+        rustup toolchain install stable --profile minimal
+        rustup default stable
+    - name: Install xtask build dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libdbus-1-dev libudev-dev pkg-config
+    - name: Restore Cargo caches
+      id: cargo-cache
+      uses: ./.github/actions/cargo-cache-restore
+      with:
+        runner-image: ubuntu-24.04
+    - name: Update product version
+      id: version
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        OPERATION: ${{ inputs.operation }}
+      run: |
+        set -euo pipefail
+        case "$OPERATION" in
+          set) cargo xtask set-version "${VERSION:?VERSION is required for set}" ;;
+          bump) VERSION="$(cargo xtask bump-version)" ;;
+          *) echo "Unsupported version operation: $OPERATION" >&2; exit 1 ;;
+        esac
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+    - name: Save Cargo caches
+      if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+      uses: ./.github/actions/cargo-cache-save
+      with:
+        sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+        sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+        sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+        sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}

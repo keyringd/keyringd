@@ -1,0 +1,18 @@
+[package]
+name = "keyringd-testkit-macros"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = { workspace = true, features = ["span-locations"] }
+quote.workspace = true
+syn = { workspace = true, features = ["full"] }
+
+[dev-dependencies]
+keyringd-testkit = { path = "../keyringd-testkit" }
+trybuild.workspace = true

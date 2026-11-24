@@ -1,0 +1,31 @@
+[package]
+name = "keyringd-testkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+keyringd-test-usbip = { path = "../keyringd-test-usbip" }
+keyringd-ssh-agent-protocol = { path = "../../keyringd-ssh-agent-protocol" }
+anyhow.workspace = true
+base64.workspace = true
+futures-util.workspace = true
+maud.workspace = true
+keyringd-testkit-macros = { path = "../keyringd-testkit-macros" }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+serde-saphyr.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tempfile.workspace = true
+image = { workspace = true, features = ["png"] }
+rqrr = { workspace = true, features = ["img"] }
+tokio = { workspace = true, features = ["process", "time", "net", "io-util"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = ["Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
+
+[dev-dependencies]
+qrcode.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }

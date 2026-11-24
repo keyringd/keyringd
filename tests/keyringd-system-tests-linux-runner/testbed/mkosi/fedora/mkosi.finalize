@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+legacy_rpmdb="$BUILDROOT/.rpmdb"
+fedora_rpmdb="$BUILDROOT/usr/lib/sysimage/rpm"
+
+if [ -d "$legacy_rpmdb" ]; then
+    rm -rf "$fedora_rpmdb"
+    mkdir -p "$(dirname "$fedora_rpmdb")"
+    mv "$legacy_rpmdb" "$fedora_rpmdb"
+fi

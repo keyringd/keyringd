@@ -1,0 +1,17 @@
+[net]
+git-fetch-with-cli = true
+
+[alias]
+xtask = "run --quiet --package xtask --"
+dist = "xtask dist"
+linux-system-test = "xtask linux-system-test"
+test-with-report = "xtask test-with-report"
+linux-system-test-with-report = "xtask linux-system-test-with-report"
+macos-system-test = "xtask macos-system-test"
+macos-system-test-with-report = "xtask macos-system-test-with-report"
+windows-system-test = "xtask windows-system-test"
+windows-system-test-with-report = "xtask windows-system-test-with-report"
+wsl-system-test = "xtask wsl-system-test"
+wsl-system-test-with-report = "xtask wsl-system-test-with-report"
+host-tests-with-report = "xtask host-tests-with-report"
+test-report = "xtask test-report"

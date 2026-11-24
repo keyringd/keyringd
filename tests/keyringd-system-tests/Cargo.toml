@@ -1,0 +1,57 @@
+[package]
+name = "keyringd-system-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[features]
+# Explicit support checks for the macOS driver on Linux and the Windows broker binary.
+test-support = []
+
+[[test]]
+name = "scenarios"
+path = "tests/main.rs"
+test = false
+
+[[bin]]
+name = "keyringd-windows-security-automation"
+path = "src/bin/windows_security_automation.rs"
+required-features = ["test-support"]
+test = false
+
+[dependencies]
+keyringd-test-usbip = { path = "../keyringd-test-usbip" }
+keyringd-testkit = { path = "../keyringd-testkit" }
+gethostname = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyringd-ui-core = { path = "../../keyringd-ui-core" }
+atspi = { workspace = true, features = ["tokio", "zbus"] }
+bt-hci = { workspace = true }
+futures-util = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "process", "rt", "sync", "time"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+uuid = { workspace = true, features = ["v4"] }
+
+[target.'cfg(unix)'.dependencies]
+keyringd-core = { path = "../../keyringd-core", features = ["test-support"] }
+serde = { workspace = true, features = ["derive"] }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+tokio = { workspace = true, features = ["rt", "time"] }
+serde = { workspace = true, features = ["derive"] }
+base64 = { workspace = true }
+image = { workspace = true, features = ["png"] }
+tempfile = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+keyringd-core = { path = "../../keyringd-core", features = ["test-support"] }
+windows = { workspace = true, features = ["Graphics_Capture", "Graphics_DirectX_Direct3D11", "Win32_Foundation", "Win32_Devices_DeviceAndDriverInstallation", "Win32_Devices_Properties", "Win32_Graphics_Dwm", "Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D11", "Win32_Graphics_Dxgi_Common", "Win32_Graphics_Gdi", "Win32_System_Com", "Win32_System_Console", "Win32_System_Registry", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_System_RemoteDesktop", "Win32_Security", "Win32_Security_Authorization", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_System_Ole", "Win32_System_Variant", "Win32_System_WinRT_Direct3D11", "Win32_System_WinRT_Graphics_Capture", "Win32_UI_Accessibility", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }

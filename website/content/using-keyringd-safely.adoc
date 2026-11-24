@@ -1,0 +1,40 @@
+= Using Keyringd safely
+:description: Protect your passkey and computer, approve only expected authentication requests, and use local authentication for additional protection.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Keyringd protects each computer's Device Key in its TPM or Secure Enclave. This prevents the private key from being extracted and used on another computer, but does not prevent someone from using the key on the original computer.
+
+To use Keyringd safely, protect both your everyday computer and the passkey that authorizes new Device Keys.
+
+== Use the passkey on trusted computers
+
+When you authorize a new Device Key with the passkey, that key can connect to servers that trust the passkey as a CA.
+
+*Do not connect a security key to an untrusted computer or approve suspicious passkey requests.* If software on the computer has been tampered with, you may be tricked into authorizing an attacker's key while believing you are authorizing your own Device Key.
+
+Add computers and replace Device Keys only on computers you control and trust.
+
+== Protect where your passkey is stored
+
+Anyone who can use the passkey can authorize new Device Keys. Protecting the passkey is just as important as protecting each computer's Device Key.
+
+If you store the passkey on a security key and use it only as a CA, you only need to take it out when adding a computer or replacing a Device Key. Keep it in a safe place between those operations. If you use the passkey for direct SSH authentication, you also need the security key when connecting.
+
+If you use a synced passkey, protect the provider account, the devices receiving the passkey, and the account recovery methods.
+
+== Protect your everyday computer
+
+Even when a Device Key's private key cannot be extracted, applications that can access the agent can request SSH authentication or signatures such as Git signatures with that key.
+
+Keep your OS and applications secure, avoid running untrusted programs, and lock the screen when you leave your computer.
+
+*Enabling Device Key Local authentication adds protection by requiring local authentication each time the key signs.* This setting is separate from authentication with the passkey.
+
+When a local authentication prompt appears, check that it corresponds to an action you just initiated. Do not approve unexpected requests.
+
+== Replacing or retiring computers, and handling loss
+
+For the steps to add, replace, or retire a computer, or respond to a lost or compromised computer or passkey, see link:{site-path}guides/adding-or-replacing-a-computer/[Adding or replacing a computer].

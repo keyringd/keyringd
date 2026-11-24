@@ -1,0 +1,36 @@
+name: Save Cargo caches
+description: Save Cargo sources and bounded sccache results on master.
+inputs:
+  sources-key:
+    description: Primary Cargo source cache key from the restore action.
+    required: true
+  sources-hit:
+    description: Whether the Cargo source cache matched exactly.
+    required: true
+  sccache-key:
+    description: Unique compilation cache key from the restore action.
+    required: true
+  sccache-directory:
+    description: Bounded sccache directory from the restore action.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Flush sccache and report statistics
+      if: ${{ env.RUSTC_WRAPPER != '' }}
+      shell: bash
+      run: sccache --stop-server
+    - name: Save Cargo sources
+      if: ${{ !cancelled() && github.ref == 'refs/heads/master' && inputs.sources-key != '' && inputs.sources-hit != 'true' }}
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ inputs.sources-key }}
+    - name: Save sccache compilation results
+      if: ${{ !cancelled() && github.ref == 'refs/heads/master' && inputs.sccache-key != '' }}
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ inputs.sccache-directory }}
+        key: ${{ inputs.sccache-key }}

@@ -1,0 +1,174 @@
+name: Clean up workflow artifacts
+
+on:
+  workflow_run:
+    workflows:
+      - Release
+      - Nightly
+      - CI
+      - System tests (Linux)
+      - System tests (Windows)
+      - System tests (WSL)
+      - System tests (macOS)
+      - Documentation website
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run-id:
+        description: Completed workflow run whose Actions artifacts should be deleted
+        required: true
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Retain two generations of compilation caches
+        uses: actions/github-script@v9
+        env:
+          TARGET_RUN_ID: ${{ github.event.workflow_run.id || inputs.run-id }}
+        with:
+          script: |
+            const runId = Number(process.env.TARGET_RUN_ID);
+            if (!Number.isSafeInteger(runId) || runId <= 0) {
+              core.setFailed('A valid workflow run ID is required.');
+              return;
+            }
+            const repository = { owner: context.repo.owner, repo: context.repo.repo };
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              ...repository, run_id: runId
+            });
+            if (run.status !== 'completed' || run.head_branch !== 'master' ||
+                run.head_repository?.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              return;
+            }
+            const ref = 'refs/heads/master';
+            const caches = await github.paginate(github.rest.actions.getActionsCacheList, {
+              ...repository, ref, key: 'sccache-v1-', per_page: 100
+            });
+            const generations = new Map();
+            const obsolete = [];
+            for (const cache of caches.sort((a, b) =>
+                b.created_at.localeCompare(a.created_at) || b.id - a.id)) {
+              if (cache.ref !== ref || !/^sccache-v1-.+--\d+-\d+-\d+$/.test(cache.key)) continue;
+              const group = cache.key.split('--')[0];
+              const count = (generations.get(group) || 0) + 1;
+              generations.set(group, count);
+              if (count > 2) obsolete.push(cache);
+            }
+            // These target-directory caches are no longer restored by any job.
+            if (generations.size > 0) {
+              const legacy = await github.paginate(github.rest.actions.getActionsCacheList, {
+                ...repository, ref, key: 'cargo-build-', per_page: 100
+              });
+              obsolete.push(...legacy.filter(cache =>
+                cache.ref === ref && cache.key.startsWith('cargo-build-')));
+            }
+            for (const cache of obsolete) {
+              try {
+                await github.rest.actions.deleteActionsCacheById({
+                  ...repository, cache_id: cache.id
+                });
+                core.info(`Deleted compilation cache ${cache.key} (${cache.id}).`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+      # Run separately after every consumer has finished, including when the
+      # producer failed or was cancelled. Never check out or execute its code.
+      - name: Delete artifacts belonging to the completed run
+        if: ${{ always() }}
+        uses: actions/github-script@v9
+        env:
+          TARGET_RUN_ID: ${{ github.event.workflow_run.id || inputs.run-id }}
+        with:
+          script: |
+            const runId = Number(process.env.TARGET_RUN_ID);
+            if (!Number.isSafeInteger(runId) || runId <= 0) {
+              core.setFailed('A valid workflow run ID is required.');
+              return;
+            }
+            const repository = { owner: context.repo.owner, repo: context.repo.repo };
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              ...repository, run_id: runId
+            });
+            if (run.status !== 'completed') {
+              core.setFailed('Artifacts cannot be removed while their workflow is running.');
+              return;
+            }
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...repository, run_id: runId
+            });
+            let deleted = 0;
+            let failed = 0;
+            for (const artifact of artifacts) {
+              try {
+                await github.rest.actions.deleteArtifact({
+                  ...repository, artifact_id: artifact.id
+                });
+                deleted += 1;
+                core.info(`Deleted ${artifact.name} (${artifact.id}).`);
+              } catch (error) {
+                if (error.status === 404) {
+                  core.info(`Artifact ${artifact.id} was already removed.`);
+                } else {
+                  failed += 1;
+                  core.error(`Could not delete artifact ${artifact.id}: ${error.message}`);
+                }
+              }
+            }
+            core.info(`Run ${runId}: ${deleted} artifacts deleted, ${failed} deletions failed.`);
+            if (failed > 0) {
+              core.setFailed('Some artifacts could not be deleted; every artifact was attempted.');
+            }
+      # A separate completed-run workflow also handles cancellation of Release or Nightly.
+      # Do not depend on prepare_release outputs: its tag push may have succeeded
+      # even when a later step failed or the run was interrupted.
+      - name: Delete temporary release tags belonging to the completed run
+        if: ${{ always() }}
+        uses: actions/github-script@v9
+        env:
+          TARGET_RUN_ID: ${{ github.event.workflow_run.id || inputs.run-id }}
+        with:
+          script: |
+            const runId = Number(process.env.TARGET_RUN_ID);
+            if (!Number.isSafeInteger(runId) || runId <= 0) {
+              core.setFailed('A valid workflow run ID is required.');
+              return;
+            }
+            const repository = { owner: context.repo.owner, repo: context.repo.repo };
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              ...repository, run_id: runId
+            });
+            if (run.status !== 'completed') {
+              core.setFailed('Temporary tags cannot be removed while their workflow is running.');
+              return;
+            }
+            if (!['.github/workflows/release.yml', '.github/workflows/nightly.yml'].includes(run.path)) {
+              return;
+            }
+            let failed = 0;
+            for (let attempt = 1; attempt <= run.run_attempt; attempt += 1) {
+              const ref = `tags/release-staging/${runId}-${attempt}`;
+              try {
+                // Lookup returns 404 for absent refs; deletion can return 422.
+                await github.rest.git.getRef({ ...repository, ref });
+                await github.rest.git.deleteRef({ ...repository, ref });
+                core.info(`Deleted ${ref}.`);
+              } catch (error) {
+                // Preparation may have failed before creating this attempt's tag.
+                if (error.status === 404) {
+                  core.info(`${ref} was not present.`);
+                } else {
+                  failed += 1;
+                  core.error(`Could not delete ${ref}: ${error.message}`);
+                }
+              }
+            }
+            if (failed > 0) {
+              core.setFailed('Some temporary release tags could not be deleted; every tag was attempted.');
+            }

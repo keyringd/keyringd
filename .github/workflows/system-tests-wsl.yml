@@ -1,0 +1,454 @@
+name: System tests (WSL)
+run-name: WSL system tests (${{ github.ref_name }})
+
+on:
+  schedule:
+    # Monday 04:17 JST.
+    - cron: '17 19 * * 0'
+  workflow_dispatch:
+    inputs:
+      coverage:
+        description: Measure product coverage
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      coverage:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: system-tests-wsl-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
+
+jobs:
+  build-companion:
+    name: Windows build
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: windows-2025
+      - name: Build packaged companion with isolated test backends
+        run: |
+          cargo ${{ inputs.coverage && 'xtask coverage-build --' || 'build' }} --locked -p keyringd-windows --bin keyringd --features test-support
+          if ($LASTEXITCODE -ne 0) { throw 'Companion build failed' }
+          cargo dist --format runtime --target windows ${{ inputs.coverage && 'target/coverage-build/packaged' || 'target' }}/debug/keyringd.exe --output-dir dist
+          if ($LASTEXITCODE -ne 0) { throw 'Companion packaging failed' }
+      - name: Upload Windows runtime
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-runtime
+          path: dist/windows-runtime/**
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+
+  build-proxy:
+    name: Proxy build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+
+      - name: Install musl and xtask host build dependencies
+        run: |
+          sudo apt-get update
+          # coverage-build first compiles xtask for the GNU/Linux host.
+          sudo apt-get install -y musl-tools pkg-config libdbus-1-dev libudev-dev
+          pkg-config --exists dbus-1 libudev
+          rustup target add x86_64-unknown-linux-musl
+
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-24.04
+      - name: Build portable WSL release
+        run: |
+          cargo ${{ inputs.coverage && 'xtask coverage-build --' || 'build' }} \
+            --locked \
+            --release \
+            --package keyringd-wsl \
+            --target x86_64-unknown-linux-musl
+
+      - name: Upload WSL proxy executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: wsl-executable
+          path: ${{ inputs.coverage && 'target/coverage-build/packaged' || 'target' }}/x86_64-unknown-linux-musl/release/keyringd-wsl-proxy
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+
+  package_wsl_deb:
+    name: Debian package
+    needs: [build-companion, build-proxy]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install packaging dependencies
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+          sudo apt-get update
+          sudo apt-get install -y dpkg binutils libdbus-1-dev libudev-dev pkg-config
+      - name: Download package inputs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '{wsl-executable,windows-runtime}'
+          path: artifacts
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-24.04
+      - name: Build WSL Debian package
+        run: >-
+          cargo dist --format deb --target wsl
+          artifacts/wsl-executable/keyringd-wsl-proxy
+          --windows-exe artifacts/windows-runtime/keyringd.exe
+          --windows-runtime-dir artifacts/windows-runtime
+          --output-dir dist
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wsl-debian-package
+          path: dist/keyringd-wsl_*.deb
+          if-no-files-found: error
+          retention-days: 1
+
+  package_wsl_rpm:
+    name: RPM package
+    needs: [build-companion, build-proxy]
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    steps:
+      - name: Install RPM packaging tools
+        run: dnf install -y git tar gzip rpm-build systemd-rpm-macros binutils rust cargo dbus-devel systemd-devel pkgconf-pkg-config
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: '{wsl-executable,windows-runtime}'
+          path: artifacts
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: fedora-44
+      - name: Build WSL RPM
+        run: >-
+          cargo dist --format rpm --target wsl
+          artifacts/wsl-executable/keyringd-wsl-proxy
+          --windows-exe artifacts/windows-runtime/keyringd.exe
+          --windows-runtime-dir artifacts/windows-runtime
+          --output-dir dist
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wsl-rpm-package
+          path: dist/*.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+  test-ubuntu:
+    name: Ubuntu
+    needs: [package_wsl_deb, package_wsl_rpm]
+    runs-on: windows-2025
+    timeout-minutes: 90
+    env:
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/system/wsl/ubuntu
+      RUST_LOG: warn,keyringd=debug
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: tests/keyringd-test-usbip/authenticator-server/gradle/libs.versions.toml
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: windows-2025
+      - name: Install signed usbip-win2 client and controller
+        id: usbip-setup
+        run: |
+          $DownloadDirectory = Join-Path $env:RUNNER_TEMP 'usbip-win2'
+          $LogDirectory = 'target/test-reports/wsl-usbip-setup'
+          $ErrorActionPreference = 'Stop'
+          $executable = Join-Path $env:ProgramFiles 'USBip\usbip.exe'
+          New-Item -ItemType Directory -Force $LogDirectory | Out-Null
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+          if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+              throw 'Silent usbip-win2 driver installation requires an elevated shell.'
+          }
+          New-Item -ItemType Directory -Force $DownloadDirectory | Out-Null
+          $installer = Join-Path $DownloadDirectory 'USBip-0.9.8.1-x64.exe'
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/vadimgrn/usbip-win2/releases/download/v.0.9.8.1/USBip-0.9.8.1-x64.exe' -OutFile $installer
+          if ((Get-FileHash -Algorithm SHA256 $installer).Hash -ne '38CAD6D4432B52D5BB9409D9AD03B72FDFFC4ADA4CD3A48FBECA1A2752A8518A') {
+              throw 'usbip-win2 installer SHA256 mismatch'
+          }
+          if ((Get-AuthenticodeSignature $installer).Status -ne 'Valid') {
+              throw 'usbip-win2 installer signature is not valid'
+          }
+          $log = Join-Path $LogDirectory 'install.log'
+          $arguments = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART', '/RESTARTEXITCODE=3010', '/COMPONENTS=main,client', '/TASKS=vcredist', ('/LOG="' + $log + '"'))
+          $startedAt = Get-Date
+          $process = Start-Process -FilePath $installer -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -notin @(0, 3010)) {
+              $failure = 'usbip-win2 installer failed: {0} (0x{0:X8})' -f $process.ExitCode
+              try {
+                  $failure | Set-Content (Join-Path $LogDirectory 'installer-exit.txt') -ErrorAction Continue
+                  Copy-Item -LiteralPath (Join-Path $env:windir 'INF\setupapi.dev.log') -Destination $LogDirectory -ErrorAction Continue
+                  Get-WinEvent -FilterHashtable @{
+                      LogName = 'Application'
+                      ProviderName = 'Application Error', 'Windows Error Reporting'
+                      Id = 1000, 1001
+                      StartTime = $startedAt
+                  } -ErrorAction SilentlyContinue |
+                      Format-List TimeCreated, ProviderName, Id, Message |
+                      Out-File (Join-Path $LogDirectory 'application-crashes.txt') -Width 4096 -ErrorAction Continue
+              } finally {
+                  throw $failure
+              }
+          }
+          Write-Output "usbip-win2 installer exit code: $($process.ExitCode)"
+          if (-not (Test-Path $executable)) { throw "usbip-win2 is not installed: $executable" }
+          & $executable --version
+          if ($LASTEXITCODE -ne 0) { throw 'usbip-win2 version probe failed' }
+          & $executable port
+          if ($LASTEXITCODE -ne 0) { throw 'usbip-win2 port probe failed' }
+          $controllers = @(Get-PnpDevice -PresentOnly | Where-Object {
+              $_.InstanceId -like 'ROOT\USB\*' -and
+              (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName DEVPKEY_Device_Service -ErrorAction SilentlyContinue).Data -eq 'usbip2_ude'
+          })
+          $controllers | Select-Object FriendlyName, InstanceId, Status | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $LogDirectory 'controllers.json')
+          if (-not ($controllers | Where-Object Status -eq 'OK')) {
+              throw 'usbip-win2 controller is not ready. Restart Windows before running the WSL system tests.'
+          }
+          # Exit 3010 is accepted only after checking the live controller. The subsequent
+          # System tests must still import a key and wait for a healthy FIDO HID device.
+      - name: Download WSL package
+        uses: actions/download-artifact@v8
+        with:
+          name: wsl-debian-package
+          path: target/wsl-packages
+      - name: Download coverage mappings for packaged applications
+        if: inputs.coverage
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '{wsl-executable,windows-runtime}'
+          path: target/coverage-inputs
+      - name: Test WSL package
+        run: cargo wsl-system-test ${{ inputs.coverage && '--coverage' || '' }} --distribution ubuntu
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: wsl-ubuntu-system
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage && steps.usbip-setup.outcome == 'success' }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: system-ubuntu-wsl
+          directory: target/coverage/system-ubuntu-wsl
+      - name: Upload setup diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wsl-usbip-setup-ubuntu
+          path: target/test-reports/wsl-usbip-setup
+          if-no-files-found: ignore
+          retention-days: 1
+
+  test-fedora:
+    name: Fedora
+    needs: [package_wsl_deb, package_wsl_rpm]
+    runs-on: windows-2025
+    timeout-minutes: 90
+    env:
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/system/wsl/fedora
+      RUST_LOG: warn,keyringd=debug
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: tests/keyringd-test-usbip/authenticator-server/gradle/libs.versions.toml
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: windows-2025
+      - name: Install signed usbip-win2 client and controller
+        id: usbip-setup
+        run: |
+          $DownloadDirectory = Join-Path $env:RUNNER_TEMP 'usbip-win2'
+          $LogDirectory = 'target/test-reports/wsl-usbip-setup'
+          $ErrorActionPreference = 'Stop'
+          $executable = Join-Path $env:ProgramFiles 'USBip\usbip.exe'
+          New-Item -ItemType Directory -Force $LogDirectory | Out-Null
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+          if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+              throw 'Silent usbip-win2 driver installation requires an elevated shell.'
+          }
+          New-Item -ItemType Directory -Force $DownloadDirectory | Out-Null
+          $installer = Join-Path $DownloadDirectory 'USBip-0.9.8.1-x64.exe'
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/vadimgrn/usbip-win2/releases/download/v.0.9.8.1/USBip-0.9.8.1-x64.exe' -OutFile $installer
+          if ((Get-FileHash -Algorithm SHA256 $installer).Hash -ne '38CAD6D4432B52D5BB9409D9AD03B72FDFFC4ADA4CD3A48FBECA1A2752A8518A') {
+              throw 'usbip-win2 installer SHA256 mismatch'
+          }
+          if ((Get-AuthenticodeSignature $installer).Status -ne 'Valid') {
+              throw 'usbip-win2 installer signature is not valid'
+          }
+          $log = Join-Path $LogDirectory 'install.log'
+          $arguments = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART', '/RESTARTEXITCODE=3010', '/COMPONENTS=main,client', '/TASKS=vcredist', ('/LOG="' + $log + '"'))
+          $startedAt = Get-Date
+          $process = Start-Process -FilePath $installer -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -notin @(0, 3010)) {
+              $failure = 'usbip-win2 installer failed: {0} (0x{0:X8})' -f $process.ExitCode
+              try {
+                  $failure | Set-Content (Join-Path $LogDirectory 'installer-exit.txt') -ErrorAction Continue
+                  Copy-Item -LiteralPath (Join-Path $env:windir 'INF\setupapi.dev.log') -Destination $LogDirectory -ErrorAction Continue
+                  Get-WinEvent -FilterHashtable @{
+                      LogName = 'Application'
+                      ProviderName = 'Application Error', 'Windows Error Reporting'
+                      Id = 1000, 1001
+                      StartTime = $startedAt
+                  } -ErrorAction SilentlyContinue |
+                      Format-List TimeCreated, ProviderName, Id, Message |
+                      Out-File (Join-Path $LogDirectory 'application-crashes.txt') -Width 4096 -ErrorAction Continue
+              } finally {
+                  throw $failure
+              }
+          }
+          Write-Output "usbip-win2 installer exit code: $($process.ExitCode)"
+          if (-not (Test-Path $executable)) { throw "usbip-win2 is not installed: $executable" }
+          & $executable --version
+          if ($LASTEXITCODE -ne 0) { throw 'usbip-win2 version probe failed' }
+          & $executable port
+          if ($LASTEXITCODE -ne 0) { throw 'usbip-win2 port probe failed' }
+          $controllers = @(Get-PnpDevice -PresentOnly | Where-Object {
+              $_.InstanceId -like 'ROOT\USB\*' -and
+              (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName DEVPKEY_Device_Service -ErrorAction SilentlyContinue).Data -eq 'usbip2_ude'
+          })
+          $controllers | Select-Object FriendlyName, InstanceId, Status | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $LogDirectory 'controllers.json')
+          if (-not ($controllers | Where-Object Status -eq 'OK')) {
+              throw 'usbip-win2 controller is not ready. Restart Windows before running the WSL system tests.'
+          }
+          # Exit 3010 is accepted only after checking the live controller. The subsequent
+          # System tests must still import a key and wait for a healthy FIDO HID device.
+      - name: Download WSL package
+        uses: actions/download-artifact@v8
+        with:
+          name: wsl-rpm-package
+          path: target/wsl-packages
+      - name: Download coverage mappings for packaged applications
+        if: inputs.coverage
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '{wsl-executable,windows-runtime}'
+          path: target/coverage-inputs
+      - name: Test WSL package
+        run: cargo wsl-system-test ${{ inputs.coverage && '--coverage' || '' }} --distribution fedora
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: wsl-fedora-system
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage && steps.usbip-setup.outcome == 'success' }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: system-fedora-wsl
+          directory: target/coverage/system-fedora-wsl
+      - name: Upload setup diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wsl-usbip-setup-fedora
+          path: target/test-reports/wsl-usbip-setup
+          if-no-files-found: ignore
+          retention-days: 1

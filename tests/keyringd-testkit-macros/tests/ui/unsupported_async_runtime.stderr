@@ -1,0 +1,5 @@
+error: only the tokio runtime is supported
+ --> tests/ui/unsupported_async_runtime.rs:5:16
+  |
+5 |         async: async_std;
+  |                ^^^^^^^^^

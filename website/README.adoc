@@ -1,0 +1,68 @@
+= Documentation website
+
+This directory owns the Roq site, AsciiDoc user documentation, Qute layouts and static assets. `content/` is the source of truth for user documentation. Repository Markdown describes development and implementation; link to site pages instead of copying installation, usage, or security explanations into crate READMEs.
+
+== Build and preview
+
+Install JDK 21 or newer and Rust. Maven is downloaded by the checked-in Maven Wrapper; its version is fixed in `.mvn/wrapper/maven-wrapper.properties`. Run from the repository root:
+
+[source,sh]
+----
+cargo xtask docs build
+cargo xtask docs dev
+----
+
+Static output is `website/target/roq/`. Build clears the Maven target directory first so deleted pages do not survive. Dev mode serves http://localhost:8080 with live reload; use `--port 8081` to choose another port and Ctrl-C to stop it.
+
+The production site is https://keyringd.com/ at the domain root:
+
+[source,sh]
+----
+cargo xtask docs build
+----
+
+The Pages workflow uses that same command. Configure repository Settings → Pages → Source as *GitHub Actions* and Custom domain as `keyringd.com`. DNS must point this domain to GitHub Pages. Deployment runs on pushes to `master` or manual dispatch on `master`; pull requests only build and upload a preview artifact.
+
+== Authoring
+
+Write documentation in `.adoc` files under `content/`. Roq reads the AsciiDoc title and `description` attribute as metadata. Use the `docs` layout for documents and `base` for the landing page.
+
+Keep the documentation index and main pages in `content/`: Documentation, Getting started, Installation, Usage, How it works, FAQ, Using Keyringd safely, Security Model, and Project. Put task-specific guides in `content/guides/`: Public key registration, Adding or replacing a computer, Git signing, and Troubleshooting.
+
+Use `link:{site-path}usage/[label]` for site links in AsciiDoc and `site.url.resolve('usage/')` in Qute. Production links resolve from the domain root. Qute evaluation is disabled in AsciiDoc so shell examples remain literal. Keep shared include files in directories beginning with `_`, so Roq does not publish them as pages.
+
+Keep generated HTML out of Git. Platform requirements belong in installation; trust and revocation belong in the security model. The public site addresses users of the published product, so do not add pre-release notices or internal release-work checklists.
+
+Developer architecture walkthroughs live under `content/internal/`, separate from the user-documentation navigation. `/internal/architecture/` is an architecture walkthrough for contributors; its SVG diagrams are editable sources under `public/images/internal/`. Keep it aligned with the current model, application, execution, and persistence boundaries described in `../docs/internal/ARCHITECTURE.md`.
+
+== Search and link previews
+
+The shared `base` layout uses Roq's built-in `{#seo page site /}` tag for titles, descriptions, canonical URLs, Open Graph and Twitter cards. The index title is the site name (`Keyringd`); document titles and descriptions come from their AsciiDoc metadata.
+
+The layout's `image: social-card.png` is inherited by all pages and resolves under `public/images/`. Override `image` in a page's metadata to use a page-specific card. The shared card is `public/images/social-card.png` (1200 × 630); its editable vector source is `assets/social-card.svg`. After editing the SVG, export it to that PNG at the same dimensions. Commit both files; no image-rendering dependency is needed to build the site.
+
+When checking production output, verify that `og:url`, `og:image`, and the canonical URL use `https://keyringd.com/` without a repository path prefix.
+
+== Content ownership
+
+Write from the current implementation and the reader's task, rather than copying repository prose. Verify UI labels against each platform's views. Keep the distinction between CA trust, direct Device Keys, and direct Passkeys explicit wherever replacement is discussed.
+
+[options="header"]
+|===
+|Page |Purpose
+|Documentation |Index of user documentation with a short description of each page
+|Getting started |One Profile, one destination, one working connection
+|How it works |Passkey authorization, local signing, and certificate trust
+|FAQ |Short answers to common questions, with links to detailed explanations and guides
+|Installation |Platform requirements and client agent configuration
+|Public key registration |Choose and register the destination's accepted identity
+|Everyday use |Profile management, identity selection, and local authentication
+|Add or replace a computer |Recover, replace, update registrations, and revoke independently
+|Git signing |Device Key SSHSIG integration and separate verifier trust
+|Troubleshooting |Diagnose the client, identity, destination, and key operation in order
+|Security Model |Actual protection and authority boundaries with implementation references
+|Using Keyringd safely |Practical precautions for protecting the Passkey and everyday computer; link to the guide for loss and replacement procedures
+|Project |Source, architecture, contribution, and test evidence
+|===
+
+The core model, `execution/`, and agent request handler establish identity and signing behavior. Platform key services establish verification and replacement behavior. Packaging and client-configuration code establish installation instructions. A test fixture or implemented backend alone does not establish physical-device compatibility; avoid broader promises than the code and evidence support.

@@ -1,0 +1,15 @@
+[package]
+name = "keyringd-test-authenticator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+keyringd-fido = { path = "../../keyringd-fido" }
+ecdsa.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
+getrandom.workspace = true
+hmac.workspace = true
+sha2.workspace = true
+thiserror.workspace = true

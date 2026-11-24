@@ -1,0 +1,5 @@
+mod macos_ssh_connection_test_window;
+pub use macos_ssh_connection_test_window::MacosSshConnectionTestWindow;
+
+mod macos_connection_test_result_window;
+pub use macos_connection_test_result_window::MacosConnectionTestResultWindow;

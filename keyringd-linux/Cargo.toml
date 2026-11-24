@@ -1,0 +1,57 @@
+[package]
+name = "keyringd-linux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+test-support = []
+
+[[bin]]
+name = "keyringd"
+path = "src/main.rs"
+
+[dependencies]
+keyringd-core = { path = "../keyringd-core" }
+keyringd-ui-core = { path = "../keyringd-ui-core" }
+keyringd-fido = { path = "../keyringd-fido" }
+keyringd-fido-client = { path = "../keyringd-fido-client" }
+keyringd-ssh-agent-protocol = { path = "../keyringd-ssh-agent-protocol" }
+anyhow.workspace = true
+argon2.workspace = true
+async-trait.workspace = true
+btleplug.workspace = true
+clap = { workspace = true, features = ["derive", "env"] }
+ecdsa.workspace = true
+futures-channel.workspace = true
+futures-util.workspace = true
+libc.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
+qrcode.workspace = true
+getrandom.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
+tokio-util = { workspace = true, features = ["rt"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tempfile.workspace = true
+zeroize.workspace = true
+
+gtk4 = { workspace = true, features = ["v4_10"] }
+libadwaita = { workspace = true, features = ["v1_4"] }
+tss-esapi.workspace = true
+
+[build-dependencies]
+anyhow.workspace = true
+cargo-about.workspace = true
+krates.workspace = true
+toml-span.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
+base64.workspace = true
+keyringd-core = { path = "../keyringd-core", features = ["test-support"] }
+keyringd-testkit = { path = "../tests/keyringd-testkit" }
+keyringd-test-authenticator = { path = "../tests/keyringd-test-authenticator" }

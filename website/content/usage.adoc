@@ -1,0 +1,137 @@
+= Usage
+:description: Use SSH, manage Profiles, enable Device Key local authentication, and select keys for particular hosts.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+After completing link:{site-path}getting-started/[Getting started], use your usual SSH commands. Keyringd provides the keys and signs authentication requests through the agent.
+
+== Automatic startup
+
+After setup, Keyringd starts automatically for everyday SSH use. You do not need to open the app before each connection.
+
+[options="header",cols="1,3"]
+|===
+|Platform |When it starts
+|Linux desktop |systemd starts the agent when a client connects to its socket
+|Windows |The app starts when you sign in to Windows
+|WSL2 |systemd starts the WSL proxy when a client connects; the proxy starts the Windows app if it is not already running
+|macOS |launchd starts the agent when a client connects to its socket
+|===
+
+Keep automatic startup enabled on Windows for this behavior. If you disable it, launch the app before using Windows SSH clients. See link:{site-path}installation/#_optional_change_automatic_startup[Windows startup settings].
+
+Open the app when you want to manage Profiles or change settings.
+
+== Connect with SSH
+
+[source,sh]
+----
+ssh user@server
+----
+
+With a Device Certificate or a directly registered Device Key, the computer signs locally. With a directly registered passkey, you complete the passkey or security-key interaction for each connection.
+
+If you enabled Device Key local authentication, local signing also asks for the password or platform approval you configured.
+
+== Manage Profiles
+
+A Profile groups a passkey, this computer's Device Key, its Device Certificate, and local settings. Create separate Profiles when you want to use different passkeys or keep different sets of SSH access separate.
+
+Use the Profile's controls to:
+
+[options="header",cols="1,3"]
+|===
+|Action |Effect
+|Rename |Change the local display name
+|Enable / disable |Include or exclude the Profile's keys and certificate from the agent
+|Drag to reorder |Drag Profiles to change the order in which their keys are offered. On Windows, you can also use *Move up* and *Move down* in the Profile's menu.
+|Details |Check the SSH authentication signature format and local authentication setting
+|Public Keys |Copy public keys to register on a server
+|Test SSH connection |Test a selected key or certificate against a server
+|Replace Device Key |link:#_replace_a_device_key_on_the_same_computer[Create a new hardware-protected key and certify it with the passkey]
+|Remove Profile |Remove local Profile data and attempt to delete its Device Key
+|===
+
+Disabling or removing a Profile affects this computer. To stop a lost computer from authenticating, follow link:{site-path}guides/adding-or-replacing-a-computer/[Adding or replacing a computer].
+
+In *Details…*, *SSH authentication signature format* shows the format selected during Profile creation. It applies to connections using a Device Certificate or the Device Key's public key. See link:{site-path}guides/public-key-registration/#_key_and_signature_formats[Key and signature formats] for compatibility details.
+
+== Local authentication
+
+By default, connections using a Device Certificate or the Device Key's public key do not ask for additional authentication. Choose *Enable local authentication…* from the Profile's menu to require a password or platform approval whenever the Device Key signs. Choose *Disable local authentication…* to turn it off.
+
+[options="header",cols="1,2,3"]
+|===
+|Platform |Action |What changes
+|Linux |Enable local authentication… |Set a password for signing; the public key stays the same
+|Windows |Enable local authentication… |Windows Security configures local authentication for a replacement Device Key, which the passkey certifies
+|macOS |Enable local authentication… |Create a replacement Device Key requiring platform approval, then certify it with the passkey
+|WSL2 |Use the Windows app |Apply the Windows Device Key settings
+|===
+
+After enabling or disabling local authentication, Keyringd opens *Public Keys…* if server registrations need updating, with an explanation of the changes. On Linux with ECDSA signatures, the key and registration stay the same, so this window does not open. Changing the setting in Keyringd does not change what your server requires.
+
+For SK signatures, the updated entries require user verification when local authentication is enabled (`verify-required`) and allow signing without user presence when it is disabled (`no-touch-required`). Replace the existing registration with the updated *Certificate Authority Public Key* entry for certificate authentication, or the updated *Device Key Public Key* entry for public-key authentication. A server that still requires presence or verification will reject the Device Key after local authentication is disabled.
+
+The CA entry's verification requirement applies to all Device Certificates accepted through that entry, including certificates for other computers using the same passkey.
+
+On Windows and macOS, enabling, disabling, or reconfiguring local authentication also creates a replacement Device Key. Update any directly registered Device Key, host-specific public-key file, or Git signing key to use the replacement. Linux retains the same public key. With SK signatures, its server registration options change when local authentication is enabled or disabled; with ECDSA signatures, the registration stays the same. Changing only the Linux password does not change the registration.
+
+With `ecdsa-sha2-nistp256`, authentication signatures do not carry UP/UV flags, so the server cannot enforce this local authentication setting through those flags. Registration entries omit these options.
+
+See link:{site-path}security-model/[Security Model] for what local authentication protects and the trust assumptions behind UP/UV flags.
+
+=== Passkey verification
+
+Passkey operations require verification through your passkey or security key. This applies when creating or recovering a passkey, certifying a Device Key, or connecting with the passkey directly.
+
+With a FIDO2 security key, follow the prompts to enter its PIN or use its built-in verification, and touch the key when requested. With an Android device or iPhone, complete verification on that device.
+
+Passkey verification is independent of the Device Key's *Local authentication* setting. Everyday connections using a Device Certificate or the Device Key's public key do not require the passkey.
+
+== Replace a Device Key on the same computer
+
+You can also replace a Device Key without changing computers:
+
+. Open the Profile's *Details…* and choose *Replace…* under *Replace Device Key*.
+. Use its passkey to certify the replacement Device Key.
+. Update directly registered Device Key public keys, host-specific public-key files, and Git signing settings as needed.
+
+The passkey public key stays the same, so an existing CA registration can accept the replacement Device Certificate.
+
+== Select one identity for a host
+
+Use a host-specific setting when you want a particular Profile or authentication method.
+
+. Run `ssh-add -L`. If it cannot reach the agent, check `SSH_AUTH_SOCK` as described in link:{site-path}installation/[Installation].
+. Copy the complete line for the key or certificate you want into `~/.ssh/keyringd-work.pub`.
+. Add the following to `~/.ssh/config`, replacing the example hostname and username:
+
+[source,sshconfig]
+----
+Host work-server
+    HostName server.example
+    User alice
+    IdentityFile ~/.ssh/keyringd-work.pub
+    IdentitiesOnly yes
+----
+
+Connect using the host name from the configuration:
+
+[source,sh]
+----
+ssh work-server
+----
+
+The public-key file selects a key already available through Keyringd. Choose the Device Certificate line for certificate authentication, the Device Key line for local direct authentication, or the passkey line for passkey authentication.
+
+If the selected Device Key or certificate changes, replace the contents of the public-key file with its new `ssh-add -L` entry.
+
+== Related tasks
+
+* link:{site-path}guides/public-key-registration/[Register keys on a server].
+* link:{site-path}guides/adding-or-replacing-a-computer/[Add, replace, or retire a computer].
+* link:{site-path}guides/git-signing/[Sign Git commits].
+* link:{site-path}guides/troubleshooting/[Troubleshoot a connection].

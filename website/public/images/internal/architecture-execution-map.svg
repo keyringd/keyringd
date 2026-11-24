@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="760" viewBox="0 0 1160 760" role="img" aria-labelledby="title desc">
+  <title id="title">Application, execution, and service calls</title>
+  <desc id="desc">The UI and SSH agent call KeyringdApplication. It runs separate workflows for profile setup, signing, management, and connection tests. These workflows use signing helpers, services, and ProfileStore. ProfileStore persists changes through ProfileRepository.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#576d68"/></marker></defs>
+  <style>text{font-family:'Segoe UI',sans-serif;fill:#183c35;font-size:17px}.heading{font-size:21px;font-weight:650}.code{font-size:16px}.small{font-size:15px;fill:#526b65}.box{fill:#fff;stroke:#bdcdc5;stroke-width:1.5}.shared{fill:#e0eee6;stroke:#88ad99;stroke-width:1.5}.execution{fill:#fbf4e6;stroke:#c8ae78;stroke-width:1.5}.line{fill:none;stroke:#576d68;stroke-width:2;marker-end:url(#arrow)}</style>
+  <rect width="1160" height="760" rx="12" fill="#f6f8f7"/>
+  <text x="30" y="36" class="small">Entry point → Application API → Workflow → Services</text>
+  <rect x="30" y="62" width="535" height="90" rx="10" class="box"/>
+  <text x="297" y="95" text-anchor="middle" class="heading">UI operations</text>
+  <text x="297" y="126" text-anchor="middle" class="code">ProfileSetupSession / OS command handler</text>
+  <rect x="595" y="62" width="535" height="90" rx="10" class="box"/>
+  <text x="862" y="95" text-anchor="middle" class="heading">SSH agent requests</text>
+  <text x="862" y="126" text-anchor="middle" class="code">KeyringdAgentRequestHandler</text>
+  <path d="M297 152V199" class="line"/>
+  <path d="M862 152V199" class="line"/>
+  <rect x="30" y="201" width="1100" height="88" rx="10" class="shared"/>
+  <text x="580" y="234" text-anchor="middle" class="heading">KeyringdApplication</text>
+  <text x="580" y="266" text-anchor="middle">Exposes operations and shared state. Creates and runs a workflow for each operation.</text>
+  <path d="M160 289V340" class="line"/>
+  <path d="M440 289V340" class="line"/>
+  <path d="M720 289V340" class="line"/>
+  <path d="M1000 289V340" class="line"/>
+  <rect x="30" y="342" width="260" height="157" rx="10" class="execution"/>
+  <text x="160" y="375" text-anchor="middle" class="heading">Profile setup</text>
+  <text x="160" y="410" text-anchor="middle" class="code">SetupProfileExecution</text>
+  <text x="160" y="450" text-anchor="middle" class="small">Confirm Passkey → generate key</text>
+  <text x="160" y="476" text-anchor="middle" class="small">Issue certificate → save and publish</text>
+  <rect x="310" y="342" width="260" height="157" rx="10" class="execution"/>
+  <text x="440" y="375" text-anchor="middle" class="heading">Signing</text>
+  <text x="440" y="410" text-anchor="middle" class="code">SignWithDeviceKeyExecution</text>
+  <text x="440" y="438" text-anchor="middle" class="code">SignWithPasskeyExecution</text>
+  <text x="440" y="476" text-anchor="middle" class="small">Sign with the key and format</text>
+  <rect x="590" y="342" width="260" height="157" rx="10" class="execution"/>
+  <text x="720" y="375" text-anchor="middle" class="heading">Profile and key changes</text>
+  <text x="720" y="410" text-anchor="middle" class="code">RenameProfileExecution</text>
+  <text x="720" y="438" text-anchor="middle" class="code">ReplaceDeviceKeyExecution</text>
+  <text x="720" y="476" text-anchor="middle" class="small">Removal, protection changes, etc.</text>
+  <rect x="870" y="342" width="260" height="157" rx="10" class="execution"/>
+  <text x="1000" y="375" text-anchor="middle" class="heading">Connection test</text>
+  <text x="1000" y="410" text-anchor="middle" class="code">TestSshConnectionExecution</text>
+  <text x="1000" y="450" text-anchor="middle" class="small">Check current profile and identity</text>
+  <text x="1000" y="476" text-anchor="middle" class="small">Run OpenSSH</text>
+  <path d="M160 499V546" class="line"/>
+  <path d="M440 499V546" class="line"/>
+  <path d="M720 499V546" class="line"/>
+  <path d="M1000 499V546" class="line"/>
+  <rect x="30" y="548" width="260" height="137" rx="10" class="box"/>
+  <text x="160" y="581" text-anchor="middle" class="code" style="font-size:14px">PasskeyService / DeviceKeyService</text>
+  <text x="160" y="614" text-anchor="middle" class="code">ProfileStore</text>
+  <text x="160" y="648" text-anchor="middle" class="small">Signing helpers and certificates</text>
+  <rect x="310" y="548" width="260" height="137" rx="10" class="box"/>
+  <text x="440" y="581" text-anchor="middle" class="code">signing::ssh / signing::fido</text>
+  <text x="440" y="614" text-anchor="middle" class="code" style="font-size:14px">DeviceKeyService / PasskeyService</text>
+  <text x="440" y="648" text-anchor="middle" class="small">See the signing paths diagram</text>
+  <rect x="590" y="548" width="260" height="137" rx="10" class="box"/>
+  <text x="720" y="581" text-anchor="middle" class="code">ProfileStore</text>
+  <text x="720" y="614" text-anchor="middle" class="code" style="font-size:14px">DeviceKeyService / PasskeyService</text>
+  <text x="720" y="648" text-anchor="middle" class="small">Call services for key operations</text>
+  <rect x="870" y="548" width="260" height="137" rx="10" class="box"/>
+  <text x="1000" y="581" text-anchor="middle" class="code">ProfileStore</text>
+  <text x="1000" y="614" text-anchor="middle" class="code">OpenSshService</text>
+  <text x="1000" y="648" text-anchor="middle" class="small">Build connection test report</text>
+  <text x="580" y="724" text-anchor="middle" class="small">Profile update: ProfileStore → ProfileUpdateTransaction::commit → ProfileRepository::save → change notification</text>
+</svg>

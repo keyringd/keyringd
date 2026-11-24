@@ -1,0 +1,122 @@
+= Troubleshooting
+:description: Diagnose agent connection, missing keys, rejected authentication, and passkey or security-key operations.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Start with the symptom you see. Check the local agent connection before changing your server's key registrations.
+
+== The client cannot reach the agent
+
+Make sure Keyringd is running, then inspect the SSH client's configuration:
+
+[source,sh]
+----
+ssh -G server.example
+----
+
+Replace `server.example` with the host you are trying to reach. Look for an explicit `identityagent` setting that overrides `SSH_AUTH_SOCK`, or host-specific settings that select a different key.
+
+Check that `SSH_AUTH_SOCK` is set in the application or terminal you are using. Follow the link:{site-path}installation/[installation guide] to configure it and apply the change. `ssh-add` and Git use this environment variable; an `IdentityAgent` setting in `~/.ssh/config` only applies to SSH.
+
+=== Linux
+
+Check the packaged service:
+
+[source,sh]
+----
+systemctl --user status keyringd-agent.socket
+systemctl --user status keyringd-desktop.service
+----
+
+=== Windows and WSL2
+
+On Windows, choose *Configure SSH Clients… → SSH_AUTH_SOCK: Configure* and restart the applications and terminals that need the agent.
+
+For Git for Windows' bundled SSH client, use *Configure SSH Clients… → Copy Git for Windows SSH setting* and follow the link:{site-path}installation/#_git_for_windows[Git Bash setup]. The Windows OpenSSH setting points to a Named Pipe, while Git's bundled SSH needs the Git for Windows socket setting. A `Device or resource busy` error with `SSH_AUTH_SOCK` pointing to `\\.\pipe\keyringd-agent-<SID>` can indicate this mismatch. Check which client you are running with `type -a ssh ssh-add` in Git Bash.
+
+If Windows SSH works but WSL does not, check the WSL proxy and `SSH_AUTH_SOCK` inside WSL. Check the proxy services with:
+
+[source,sh]
+----
+systemctl --user status keyringd.socket
+systemctl --user status keyringd.service
+----
+
+See link:{site-path}installation/#_wsl2[Installation] for the WSL configuration.
+
+If the proxy logs `Exec format error`, try `cmd.exe /c ver` inside WSL. If that also fails, check Windows interoperability and the `WSLInterop` interpreter registration before changing your SSH keys. The link:{site-path}installation/#_fedora_windows_commands_report_exec_format_error[Fedora interoperability setup] describes the registration missing from the Fedora 44 image tested.
+
+=== macOS
+
+Open Keyringd and check that its menu bar icon is visible. To test the dedicated socket, run `SSH_AUTH_SOCK="$HOME/Library/Application Support/keyringd/agent.sock" ssh-add -L`.
+
+After *Configure*, `readlink "$SSH_AUTH_SOCK"` should show Keyringd's dedicated socket. The value of `SSH_AUTH_SOCK` itself stays the same. If it points at another agent, check for old LaunchAgents or shell overrides. An explicit `IdentityAgent` in `~/.ssh/config` takes precedence over the environment variable.
+
+If Keyringd has stopped, open it again to resume connections. To restore the macOS agent, use *Unconfigure* while Keyringd is running. If the app has been deleted with Configure enabled, sign out and back in to get a fresh macOS socket.
+
+== The intended key is missing
+
+. Confirm that the Profile completed setup and is enabled.
+. Set `SSH_AUTH_SOCK` as described in link:{site-path}guides/troubleshooting/#_the_client_cannot_reach_the_agent[The client cannot reach the agent] and run `ssh-add -L`.
+. Compare the listed keys and certificate with the Profile's details and *Public Keys…*.
+
+An expired or otherwise unusable Device Certificate is not listed, even if the Device Key and passkey are available. A server configured only for certificate authentication will not accept those direct keys.
+
+If the app reports a hardware-key loading error or cannot read a Profile, check its logs. If the Device Key is no longer usable, use the existing passkey to create and certify a new one, then update registrations as described in link:{site-path}guides/adding-or-replacing-a-computer/[Adding or replacing a computer].
+
+== Keys are listed, but login is rejected
+
+Open *Test SSH connection…* and test the Device Certificate, Device Key, or passkey that matches your server registration. To inspect command-line authentication, run:
+
+[source,sh]
+----
+ssh -vv user@server
+----
+
+Replace the username and hostname with your connection details. Check which keys are offered and accepted, then check:
+
+* The key you tested matches the public key registered on the server.
+* A CA registration includes both `cert-authority` and `principals=`.
+* The entry is in the intended server account's `authorized_keys`.
+* The certificate is within its validity period and the system clock is correct.
+* The server accepts the certificate and signature algorithms.
+* After changing local authentication, the server registration matches the updated entry in *Public Keys…*. With SK signatures, an entry that still requires user presence or verification rejects a Device Key whose local authentication is disabled.
+
+See link:{site-path}guides/public-key-registration/[Public key registration] for registration and algorithm details. If the client offers too many keys before reaching the right one, use link:{site-path}usage/#_select_one_identity_for_a_host[host-specific key selection].
+
+== An unexpected passkey prompt appears
+
+The SSH client may have selected the passkey for direct authentication. To connect locally without using your passkey, test or select the Device Certificate for CA authentication, or the Device Key for direct authentication.
+
+A password or platform approval prompt can also come from Device Key local authentication. Check the Profile's protection setting in link:{site-path}usage/#_local_authentication[Usage].
+
+== The phone or security key cannot complete an operation
+
+=== Android or iPhone
+
+Check that Bluetooth is enabled on the computer and phone, both have network access, and the intended passkey is available on the phone. On macOS, also check the app's Bluetooth permission.
+
+During setup or recovery, scan the QR code currently shown. Each step uses a new code. If an operation fails, cancel and retry with the new QR code.
+
+When recovering a passkey, use the provider account and passkey that you used originally. Creating a new passkey produces a different public key.
+
+=== USB security key
+
+Reconnect the key and complete any requested PIN or biometric verification. If prompted to set a PIN for the first time, follow the on-screen instructions. To change an existing PIN, use the manufacturer's tools or your operating system's settings.
+
+== Collect diagnostics for a report
+
+Include the operating system and app version, the phone or security key used, the selected key or certificate, the expected result, and the steps to reproduce the issue.
+
+[options="header",cols="1,2"]
+|===
+|Environment |Logs
+|Packaged Linux |`journalctl --user -u keyringd-desktop.service -b`
+|WSL proxy |`journalctl --user -u keyringd.service -b`, plus Windows agent logs
+|Windows |`%LOCALAPPDATA%\keyringd\logs`
+|macOS source build |Process output
+|===
+
+See https://github.com/keyringd/keyringd/blob/master/docs/internal/DEVELOPMENT.md#logging[Logging] before enabling detailed logs. Review logs and captures before attaching them to a https://github.com/keyringd/keyringd/issues[GitHub Issue]; wire traces can contain sensitive data, including PINs or QR secrets.

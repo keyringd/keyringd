@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.keyringd.Keyringd
+Exec=/usr/bin/keyringd agent
+SystemdService=keyringd-desktop.service

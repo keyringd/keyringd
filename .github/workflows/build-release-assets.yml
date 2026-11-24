@@ -1,0 +1,441 @@
+name: Build release assets
+
+on:
+  workflow_call:
+    outputs:
+      commit:
+        description: Exact source commit used to build the assets
+        value: ${{ jobs.prepare.outputs.commit }}
+      tag:
+        description: Tag for the GitHub Release
+        value: ${{ jobs.prepare.outputs.tag }}
+    inputs:
+      channel:
+        description: release or nightly
+        required: true
+        type: string
+      version:
+        description: Optional override for a numbered release; defaults to workspace.package.version
+        default: ''
+        type: string
+
+    secrets:
+      MACOS_CERTIFICATE_BASE64:
+        required: true
+      MACOS_CERTIFICATE_PASSWORD:
+        required: true
+      MACOS_PROVISION_PROFILE_BASE64:
+        required: true
+      APPLE_ID:
+        required: true
+      APPLE_TEAM_ID:
+        required: true
+      APPLE_APP_SPECIFIC_PASSWORD:
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  prepare:
+    name: Prepare source
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
+      tag: ${{ steps.source.outputs.tag }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.channel == 'nightly' && 'master' || github.sha }}
+          fetch-depth: 0
+      - name: Prepare source
+        id: source
+        uses: ./.github/actions/prepare-release
+        with:
+          channel: ${{ inputs.channel }}
+          version: ${{ inputs.version }}
+
+  build_windows:
+    name: Build Windows
+    needs: prepare
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: windows-2025
+      - name: Build Windows release
+        run: cargo build --locked --release --package keyringd-windows
+
+      - name: Package and validate Windows MSI
+        run: cargo dist --format msi --target windows target/release/keyringd.exe --output-dir dist
+
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload Windows runtime
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-runtime
+          path: dist/windows-runtime/**
+          if-no-files-found: error
+          retention-days: 1
+      - name: Upload Windows MSI
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-msi
+          path: dist/keyringd-*-x86_64.msi
+          if-no-files-found: error
+          retention-days: 1
+
+  build_macos:
+    name: Build macOS
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    needs: prepare
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Install signing dependencies
+        run: brew install openssl@3
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: macos-15
+      - name: Build macOS application
+        run: cargo build --locked --release -p keyringd-macos --bin keyringd-macos
+      - name: Sign, notarize, and package macOS app
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_PROVISION_PROFILE_BASE64: ${{ secrets.MACOS_PROVISION_PROFILE_BASE64 }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: cargo xtask dist --target macos --format app target/release/keyringd-macos --output-dir dist
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload macOS application archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-package
+          path: dist/keyringd-*.app.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  build_linux:
+    name: Build Linux
+    needs: prepare
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+      - name: Install build dependencies
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          sudo apt-get update
+          sudo apt-get install -y libtss2-dev libgtk-4-dev libadwaita-1-dev libdbus-1-dev libudev-dev pkg-config
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-24.04
+      - run: cargo build --locked --release --package keyringd-linux
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-executable
+          path: target/release/keyringd
+          if-no-files-found: error
+          retention-days: 1
+
+  build_wsl:
+    name: Build WSL
+    needs: prepare
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Install musl build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          rustup target add x86_64-unknown-linux-musl
+
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-24.04
+      - name: Build portable WSL release
+        run: |
+          cargo build \
+            --locked \
+            --release \
+            --package keyringd-wsl \
+            --target x86_64-unknown-linux-musl
+
+      - name: Upload WSL proxy executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: wsl-executable
+          path: target/x86_64-unknown-linux-musl/release/keyringd-wsl-proxy
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+
+  package_linux_deb:
+    name: Package Linux Debian
+    needs: [prepare, build_linux]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+      - name: Install packaging dependencies
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          sudo apt-get update
+          # dpkg-shlibdeps needs the binary's shared libraries and their package
+          # metadata even though compilation happened in a separate job.
+          sudo apt-get install -y dpkg-dev libdbus-1-dev libudev-dev pkg-config libtss2-dev libgtk-4-dev libadwaita-1-dev
+      - name: Download package inputs
+        uses: actions/download-artifact@v8
+        with:
+          name: linux-executable
+          path: artifacts/linux-executable
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-24.04
+      - name: Build Linux Debian package
+        run: cargo dist --format deb artifacts/linux-executable/keyringd --output-dir dist
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-debian-package
+          path: dist/keyringd_*.deb
+          if-no-files-found: error
+          retention-days: 1
+
+  package_linux_rpm:
+    name: Package Linux RPM
+    needs: [prepare, build_linux]
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    steps:
+      - name: Install RPM packaging tools
+        run: dnf install -y git tar gzip rpm-build systemd-rpm-macros binutils rust cargo dbus-devel systemd-devel pkgconf-pkg-config
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: linux-executable
+          path: artifacts/linux-executable
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: fedora-44
+      - name: Build Linux RPM
+        run: cargo dist --format rpm artifacts/linux-executable/keyringd --output-dir dist
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-rpm-package
+          path: dist/*.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+  package_wsl_deb:
+    name: Package WSL Debian
+    needs: [prepare, build_windows, build_wsl]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+      - name: Install packaging dependencies
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          sudo apt-get update
+          sudo apt-get install -y dpkg binutils libdbus-1-dev libudev-dev pkg-config
+      - name: Download package inputs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '{wsl-executable,windows-runtime}'
+          path: artifacts
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-24.04
+      - name: Build WSL Debian package
+        run: >-
+          cargo dist --format deb --target wsl
+          artifacts/wsl-executable/keyringd-wsl-proxy
+          --windows-exe artifacts/windows-runtime/keyringd.exe
+          --windows-runtime-dir artifacts/windows-runtime
+          --output-dir dist
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wsl-debian-package
+          path: dist/keyringd-wsl_*.deb
+          if-no-files-found: error
+          retention-days: 1
+
+  package_wsl_rpm:
+    name: Package WSL RPM
+    needs: [prepare, build_windows, build_wsl]
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    steps:
+      - name: Install RPM packaging tools
+        run: dnf install -y git tar gzip rpm-build systemd-rpm-macros binutils rust cargo dbus-devel systemd-devel pkgconf-pkg-config
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: '{wsl-executable,windows-runtime}'
+          path: artifacts
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: fedora-44
+      - name: Build WSL RPM
+        run: >-
+          cargo dist --format rpm --target wsl
+          artifacts/wsl-executable/keyringd-wsl-proxy
+          --windows-exe artifacts/windows-runtime/keyringd.exe
+          --windows-runtime-dir artifacts/windows-runtime
+          --output-dir dist
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wsl-rpm-package
+          path: dist/*.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+
+  assemble_assets:
+    name: Assemble release assets
+    needs: [prepare, build_windows, build_macos, package_linux_deb, package_linux_rpm, package_wsl_deb, package_wsl_rpm]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - name: Download package inputs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '{windows-msi,wsl-executable,*-package}'
+          path: artifacts
+      - name: Assemble release assets and checksums
+        uses: ./.github/actions/assemble-release-assets
+      - name: Upload assembled assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-assets
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 1

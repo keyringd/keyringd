@@ -1,0 +1,5 @@
+mod change_device_key_protection_execution;
+mod replace_device_key_execution;
+
+pub(crate) use change_device_key_protection_execution::ChangeDeviceKeyProtectionExecution;
+pub(crate) use replace_device_key_execution::ReplaceDeviceKeyExecution;

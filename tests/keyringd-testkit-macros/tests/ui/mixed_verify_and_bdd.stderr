@@ -1,0 +1,5 @@
+error: a scenario requires either verify steps or at least one given, when, and then step
+ --> tests/ui/mixed_verify_and_bdd.rs:4:10
+  |
+4 |     case "rejects mixed verification styles" {
+  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

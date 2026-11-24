@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+deb-systemd-helper --user enable keyringd-agent.socket >/dev/null || true
+if [ "$1" = configure ] && command -v deb-systemd-invoke >/dev/null; then
+    deb-systemd-invoke --user daemon-reload || true
+    deb-systemd-invoke --user start keyringd-agent.socket || true
+fi

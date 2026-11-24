@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # cargo-about 0.9.2 exposes krates 0.21 graph types; upgrade them together.
+      - dependency-name: krates
+        versions: [">=0.22"]
+      # gtk4-sys 0.11.5 requires an indexmap version incompatible with krates 0.21.3.
+      - dependency-name: gtk4
+        versions: ["0.11.5"]
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: gradle
+    directory: /tests/keyringd-test-usbip/authenticator-server
+    schedule:
+      interval: weekly
+    groups:
+      authenticator-dependencies:
+        patterns:
+          - "*"

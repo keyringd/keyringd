@@ -1,0 +1,67 @@
+<figure class="auth-diagram" aria-labelledby="direct-auth-caption">
+  <p class="auth-stage tiny-label">DEVICE KEY · EVERYDAY SSH</p>
+  <div class="auth-exchange">
+    <div class="auth-panel auth-computer">
+      <div class="auth-panel-heading">
+        <svg class="auth-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="5" y="7" width="30" height="22" rx="3"/><path d="M2 33h36M15 30h10"/></svg>
+        <strong>Your computer</strong>
+      </div>
+      <div class="auth-client">SSH client <span>via Keyringd</span></div>
+      <div class="auth-node auth-hardware">
+        <svg class="auth-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M18 2v8m14-8v8m14-8v8M18 54v8m14-8v8m14-8v8M2 18h8M2 32h8M2 46h8m44-28h8M54 32h8M54 46h8"/><rect x="10" y="10" width="44" height="44" rx="7"/><circle cx="26" cy="27" r="7"/><path d="M31 32 47 48M36 37l5-5m1 11 5-5"/></svg>
+        <strong>Device Key</strong>
+        <span>TPM / Secure Enclave</span>
+        <span>Signs the authentication request</span>
+      </div>
+      <p class="auth-note">No passkey authentication needed.</p>
+    </div>
+    <div class="auth-transfer">
+      <strong>SSH request</strong>
+      <span class="auth-transfer-line" aria-hidden="true"></span>
+      <span>Signature</span>
+    </div>
+    <div class="auth-panel auth-server">
+      <div class="auth-panel-heading">
+        <svg class="auth-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="5" y="3" width="30" height="14" rx="3"/><rect x="5" y="23" width="30" height="14" rx="3"/><path d="M11 10h2m5 0h10M11 30h2m5 0h10"/></svg>
+        <strong>SSH server</strong>
+      </div>
+      <div class="auth-node auth-device-trust"><span class="tiny-label">REGISTERED DIRECTLY</span><strong>Device Key public key</strong></div>
+      <p class="auth-verification">Verifies the authentication signature with the registered public key.</p>
+      <p class="auth-note">New computer? Register its new Device Key.</p>
+    </div>
+  </div>
+  <div class="auth-alternative">
+    <p class="auth-stage tiny-label">PASSKEY · ACCESS ACROSS COMPUTERS</p>
+    <div class="auth-exchange">
+      <div class="auth-signer-column">
+        <div class="auth-panel auth-computer">
+          <div class="auth-panel-heading">
+            <svg class="auth-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="5" y="7" width="30" height="22" rx="3"/><path d="M2 33h36M15 30h10"/></svg>
+            <strong>Your computer</strong>
+          </div>
+          <div class="auth-client">SSH client <span>via Keyringd</span></div>
+        </div>
+        <div class="auth-signing-link"><span aria-hidden="true">↕</span> Requests a signature</div>
+        <div class="auth-node auth-passkey-signer">
+          <svg class="auth-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M18 18 33 33M23 23l5-5m0 10 5-5"/></svg>
+          <strong>Passkey</strong><span>Phone or security key</span><span>Authenticate for each connection</span>
+        </div>
+      </div>
+      <div class="auth-transfer auth-transfer-passkey">
+        <strong>SSH request</strong>
+        <span class="auth-transfer-line" aria-hidden="true"></span>
+        <span>Signature</span>
+      </div>
+      <div class="auth-panel auth-server">
+        <div class="auth-panel-heading">
+          <svg class="auth-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="5" y="3" width="30" height="14" rx="3"/><rect x="5" y="23" width="30" height="14" rx="3"/><path d="M11 10h2m5 0h10M11 30h2m5 0h10"/></svg>
+          <strong>SSH server</strong>
+        </div>
+        <div class="auth-node auth-trust"><span class="tiny-label">REGISTERED DIRECTLY</span><strong>Passkey public key</strong></div>
+        <p class="auth-verification">Verifies the authentication signature with the registered public key.</p>
+        <p class="auth-note">New computer? Keep using the same passkey.</p>
+      </div>
+    </div>
+  </div>
+  <figcaption class="auth-caption" id="direct-auth-caption"><strong>Register the signing key directly. No certificate involved.</strong><span>Use the Device Key every day; use your passkey while setting up a replacement computer.</span></figcaption>
+</figure>

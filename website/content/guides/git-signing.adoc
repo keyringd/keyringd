@@ -1,0 +1,110 @@
+= Git signing
+:description: Choose a Profile's key to sign Git commits and configure signature verification.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Git can sign commits with any of the three SSH identities in a Keyringd Profile.
+
+== 1. Connect Git to Keyringd
+
+Configure the SSH agent for your environment as described in link:{site-path}installation/[Installation]. Continue to step 2 if you use Git on Linux, macOS, or WSL2, or if you use Git for Windows from Git Bash.
+
+=== Additional step when using Git for Windows from PowerShell
+
+If you normally sign from PowerShell, run this once to make Git use the Windows `ssh-keygen` that connects to Keyringd's named pipe.
+
+[source,powershell]
+----
+git config --global gpg.ssh.program "$env:WINDIR/System32/OpenSSH/ssh-keygen.exe"
+----
+
+== 2. Select your signing key
+
+Run `ssh-add -L` in your configured shell. Each line is a public identity. Find your Profile by its display name in the comment at the end of the line, then choose the identity you want to use.
+
+[cols="1,2,4",options="header"]
+|===
+|Identity |Example comment for Profile `work` |When to use it
+
+|Device Key
+|`keyringd work device key@…`
+|Sign with this computer's TPM or Secure Enclave. If local authentication is enabled, approve each signature locally.
+
+|Passkey
+|`keyringd work passkey`
+|Sign with your passkey or security key. The same passkey gives you the same signing identity across computers.
+
+|Device Certificate
+|`keyringd work device certificate`
+|Sign with this computer's Device Key and include its certificate. Verifiers can trust the passkey as a certificate authority (CA). GitHub supports the two public-key options above.
+|===
+
+Copy the entire line for your chosen identity into a plain-text file such as `~/.ssh/keyringd-work.pub`. Create the `~/.ssh` directory if needed. Use a separate file for each Profile you sign with.
+
+== 3. Enable commit signing
+
+In the same shell, set the default signing identity for your repositories. Use the path you chose in step 2.
+
+[source,sh]
+----
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/keyringd-work.pub
+git config --global commit.gpgsign true
+----
+
+Create a commit as usual. Git asks Keyringd to sign it with the identity in that file.
+
+== 4. Configure signature verification
+
+To verify Git signatures, add the signing public key or CA to your local `allowed_signers` file or register the signing public key with GitHub.
+
+=== Local verification
+
+Create `~/.ssh/allowed_signers` using the format that matches your signing identity.
+
+==== With a Device Key or passkey
+
+Add your commit email followed by the complete public-key line from `keyringd-work.pub`:
+
+[source,text]
+----
+alice@example.com ecdsa-sha2-nistp256 <public key>
+----
+
+Replace the example email and public key with your own. Keep the key type from the saved line, including `sk-ecdsa-sha2-nistp256@openssh.com` for a passkey or SK Device Key.
+
+==== With a Device Certificate
+
+Inspect the saved certificate:
+
+[source,sh]
+----
+ssh-keygen -L -f "$HOME/.ssh/keyringd-work.pub"
+----
+
+Use the value under `Principals` as the first field in `allowed_signers`, followed by `cert-authority` and the *Certificate Authority Public Key* from *Public Keys…*:
+
+[source,text]
+----
+keyringd:<derived identity> cert-authority sk-ecdsa-sha2-nistp256@openssh.com <CA public key>
+----
+
+Copy the CA's key type and base64-encoded public key, without the server-registration options. OpenSSH matches the signer identity against the principal embedded in the certificate. See the https://man.openbsd.org/ssh-keygen#ALLOWED_SIGNERS[allowed signers format].
+
+==== Check the signature
+
+Configure Git to use the file, then inspect a signed commit:
+
+[source,sh]
+----
+git config --global gpg.ssh.allowedSignersFile ~/.ssh/allowed_signers
+git log --show-signature -1
+----
+
+=== GitHub
+
+For commits signed with a Device Key or passkey, add the selected public key in *Settings → SSH and GPG keys → New SSH key*, selecting *Signing Key*.
+
+If you already registered it as an authentication key, add it again as a signing key. See GitHub's https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account[SSH key registration guide].

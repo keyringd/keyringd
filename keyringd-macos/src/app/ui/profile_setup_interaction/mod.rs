@@ -1,0 +1,2 @@
+mod profile_setup_interaction_page;
+pub(crate) use profile_setup_interaction_page::ProfileSetupInteractionPage;

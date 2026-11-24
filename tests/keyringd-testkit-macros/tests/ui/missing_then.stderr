@@ -1,0 +1,5 @@
+error: a scenario requires either verify steps or at least one given, when, and then step
+ --> tests/ui/missing_then.rs:4:10
+  |
+4 |     case "missing expected result" {
+  |          ^^^^^^^^^^^^^^^^^^^^^^^^^

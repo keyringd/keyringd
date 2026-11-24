@@ -1,0 +1,12 @@
+mod device_key_operation_context;
+mod device_key_protection;
+mod error_logging;
+mod execution_transactions;
+mod fixture;
+mod profile_management;
+mod profile_persistence;
+mod profile_setup;
+mod profile_transactions;
+mod signature_algorithms;
+mod ssh_connection;
+mod startup;

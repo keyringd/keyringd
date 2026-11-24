@@ -1,0 +1,106 @@
+= FAQ
+:description: Answers to common questions about passkeys, hardware-protected SSH keys, server compatibility, and everyday use.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Common questions about setting up and using Keyringd. For a walkthrough of your first connection, see link:{site-path}getting-started/[Getting started].
+
+== Do I need my passkey every time I connect?
+
+No. Everyday connections using a Device Certificate or a directly registered Device Key sign with your computer's Device Key, without using your passkey. Connecting with the passkey directly requires passkey authentication for each connection.
+
+If you enable Device Key local authentication, local signing also asks for the password or platform approval you configured. See link:{site-path}usage/#_local_authentication[Local authentication].
+
+== How is this different from using a FIDO2 security key directly with SSH?
+
+With certificate authentication in Keyringd, you do not need to carry your security key or touch and authenticate with it for every SSH connection. Your computer's Device Key signs everyday connections locally.
+
+You only need your passkey when certifying a Device Key, such as when adding or replacing a computer. That passkey can be on your phone or a FIDO2 security key.
+
+See link:{site-path}how-it-works/[How it works] for the two keys' roles.
+
+== How does this relate to the passkeys I use on websites?
+
+Keyringd uses the key management capabilities of passkey providers and FIDO2 security keys for SSH. The passkey you create for Keyringd is separate from the passkeys you use to sign in to websites.
+
+For example, registering a passkey to sign in to GitHub's website does not set up SSH access. To use Keyringd for Git over SSH, you also need to register its public keys as SSH keys in GitHub. See link:{site-path}guides/public-key-registration/#_github[Register SSH keys with GitHub].
+
+== Do I need to start the app before connecting?
+
+No, once setup is complete. Windows starts the app when you sign in; Linux and macOS start the agent when a client connects. In WSL2, a client connection starts the proxy, which starts the Windows app if needed.
+
+Keep automatic startup enabled for Windows SSH clients. See link:{site-path}usage/#_automatic_startup[Automatic startup] for the details.
+
+== Do I need to install anything on my servers?
+
+You do not need to install Keyringd on your servers. On an OpenSSH server, add the Certificate Authority Public Key entry to the server account's `~/.ssh/authorized_keys`. For servers that do not support SSH certificates, register the Device Key and Passkey public keys directly.
+
+The server must accept the key and signature formats you use. See link:{site-path}guides/public-key-registration/[Public key registration] for registration and compatibility details.
+
+== What if my server doesn't support SSH certificates?
+
+Register the Device Key and Passkey public keys directly. We recommend registering both: use the Device Key for everyday connections, and the passkey after replacing your computer until you register its new Device Key.
+
+See link:{site-path}guides/public-key-registration/#direct-keys[Register keys directly].
+
+== Can I use my usual SSH tools?
+
+Yes. Keyringd works as a standard SSH agent. Configure your client once, then keep using `ssh`, `scp`, `sftp`, and `git` as usual.
+
+See link:{site-path}installation/[Installation] for client setup, including Git for Windows and WSL2.
+
+== Can I import my existing SSH private key?
+
+No. Keyringd generates new Device Keys inside your computer's TPM or Secure Enclave. Importing an existing private key would not undo any copies that may already exist outside the hardware.
+
+Follow link:{site-path}getting-started/[Getting started] to create a new Device Key and register its CA or public key on your servers.
+
+== What happens when I replace my computer?
+
+Use the same passkey to certify a new Device Key on your new computer. Servers that trust the passkey as a CA keep the same configuration; servers where you registered the Device Key directly need its new public key.
+
+You do not need to copy the old Profile or private key. See link:{site-path}guides/adding-or-replacing-a-computer/[Adding or replacing a computer].
+
+== Can I use the same passkey on multiple computers?
+
+Yes. On each computer, create a Profile and choose *Use an existing passkey*. Each computer gets its own Device Key, certified by the same passkey, and servers that trust that CA can accept all of them.
+
+Adding a computer leaves the existing computers' access in place. See link:{site-path}guides/adding-or-replacing-a-computer/[Adding or replacing a computer].
+
+== Can I use a synced passkey?
+
+Yes. You can use a synced passkey available on a supported Android device or iPhone. This lets you get started with your phone without buying a separate security key. The trade-off is that you also trust the provider's account security, recovery process, and every device receiving the passkey. Anyone who can use that passkey can authorize new Device Keys.
+
+For the strongest protection of your CA passkey, store it on a hardware security key and keep the security key in a safe except when certifying a Device Key. This keeps its private key off synced devices and limits its exposure to computers. If you also use the security key for direct SSH authentication, you need it for each connection.
+
+See link:{site-path}using-keyringd-safely/#_protect_where_your_passkey_is_stored[Protect where your passkey is stored] for practical precautions.
+
+== What if I lose my passkey?
+
+Existing Device Keys and valid Device Certificates can continue to connect without the passkey. You need access to the passkey to authorize new Device Keys or connect with the passkey directly; a Profile or public key cannot restore it.
+
+See link:{site-path}guides/adding-or-replacing-a-computer/#_if_the_passkey_is_lost_or_compromised[If the passkey is lost or compromised] for how to replace it and update server trust.
+
+== Do I need an internet connection to use Keyringd?
+
+Everyday connections using a Device Key only need network access to your SSH server. Phone passkey operations require internet access and Bluetooth on both your computer and phone. Passkey operations with a USB security key can work offline.
+
+See link:{site-path}installation/#_platform_requirements[Platform requirements] for phone and security-key requirements.
+
+== Do Device Certificates expire?
+
+Yes. Device Certificates are valid for 100 years by default.
+
+This is a deliberate trade-off. Shorter lifetimes limit how long access remains valid without renewal. But frequent certification requests can make passkey approval feel routine, increasing the risk of accidentally approving a malicious request to authorize an attacker's key.
+
+Keyringd favors keeping certification an infrequent, deliberate action. To revoke access, update the server's trusted keys or CA settings explicitly.
+
+See link:{site-path}guides/adding-or-replacing-a-computer/[Adding or replacing a computer] for steps to revoke access.
+
+== Does hardware protection stop malware from using my key?
+
+Hardware protection prevents the Device Key's private key from being extracted and used on another computer. Software that can access the agent on your computer can still request signatures. Enabling Device Key local authentication requires authentication whenever that key signs.
+
+See link:{site-path}using-keyringd-safely/[Using Keyringd safely] for practical precautions and link:{site-path}security-model/[Security Model] for the protection limits.

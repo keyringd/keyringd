@@ -1,0 +1,160 @@
+name: System tests (Windows)
+run-name: Windows system tests (${{ github.ref_name }})
+
+on:
+  schedule:
+    # Monday 03:17 JST (Sunday 18:17 UTC), away from the busy hour boundary.
+    - cron: '17 18 * * 0'
+  workflow_dispatch:
+    inputs:
+      coverage:
+        description: Measure product coverage
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      coverage:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: system-tests-windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
+
+jobs:
+  test-windows-system:
+    name: System tests
+    env:
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/system/windows
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: tests/keyringd-test-usbip/authenticator-server/gradle/libs.versions.toml
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: windows-2025
+      - name: Install signed usbip-win2 client and controller
+        id: usbip-setup
+        run: |
+          $DownloadDirectory = Join-Path $env:RUNNER_TEMP 'usbip-win2'
+          $LogDirectory = 'target/test-reports/windows-usbip-setup'
+          $ErrorActionPreference = 'Stop'
+          $executable = Join-Path $env:ProgramFiles 'USBip\usbip.exe'
+          New-Item -ItemType Directory -Force $LogDirectory | Out-Null
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+          if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+              throw 'Silent usbip-win2 driver installation requires an elevated shell.'
+          }
+          New-Item -ItemType Directory -Force $DownloadDirectory | Out-Null
+          $installer = Join-Path $DownloadDirectory 'USBip-0.9.8.1-x64.exe'
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/vadimgrn/usbip-win2/releases/download/v.0.9.8.1/USBip-0.9.8.1-x64.exe' -OutFile $installer
+          if ((Get-FileHash -Algorithm SHA256 $installer).Hash -ne '38CAD6D4432B52D5BB9409D9AD03B72FDFFC4ADA4CD3A48FBECA1A2752A8518A') {
+              throw 'usbip-win2 installer SHA256 mismatch'
+          }
+          if ((Get-AuthenticodeSignature $installer).Status -ne 'Valid') {
+              throw 'usbip-win2 installer signature is not valid'
+          }
+          $log = Join-Path $LogDirectory 'install.log'
+          $arguments = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART', '/RESTARTEXITCODE=3010', '/COMPONENTS=main,client', '/TASKS=vcredist', ('/LOG="' + $log + '"'))
+          $startedAt = Get-Date
+          $process = Start-Process -FilePath $installer -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -notin @(0, 3010)) {
+              $failure = 'usbip-win2 installer failed: {0} (0x{0:X8})' -f $process.ExitCode
+              try {
+                  $failure | Set-Content (Join-Path $LogDirectory 'installer-exit.txt') -ErrorAction Continue
+                  Copy-Item -LiteralPath (Join-Path $env:windir 'INF\setupapi.dev.log') -Destination $LogDirectory -ErrorAction Continue
+                  Get-WinEvent -FilterHashtable @{
+                      LogName = 'Application'
+                      ProviderName = 'Application Error', 'Windows Error Reporting'
+                      Id = 1000, 1001
+                      StartTime = $startedAt
+                  } -ErrorAction SilentlyContinue |
+                      Format-List TimeCreated, ProviderName, Id, Message |
+                      Out-File (Join-Path $LogDirectory 'application-crashes.txt') -Width 4096 -ErrorAction Continue
+              } finally {
+                  throw $failure
+              }
+          }
+          Write-Output "usbip-win2 installer exit code: $($process.ExitCode)"
+          if (-not (Test-Path $executable)) { throw "usbip-win2 is not installed: $executable" }
+          & $executable --version
+          if ($LASTEXITCODE -ne 0) { throw 'usbip-win2 version probe failed' }
+          & $executable port
+          if ($LASTEXITCODE -ne 0) { throw 'usbip-win2 port probe failed' }
+          $controllers = @(Get-PnpDevice -PresentOnly | Where-Object {
+              $_.InstanceId -like 'ROOT\USB\*' -and
+              (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName DEVPKEY_Device_Service -ErrorAction SilentlyContinue).Data -eq 'usbip2_ude'
+          })
+          $controllers | Select-Object FriendlyName, InstanceId, Status | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $LogDirectory 'controllers.json')
+          if (-not ($controllers | Where-Object Status -eq 'OK')) {
+              throw 'usbip-win2 controller is not ready. Restart Windows before running the Windows system tests.'
+          }
+          # Exit 3010 is accepted only after checking the live controller. The subsequent
+          # System tests must still import a key and wait for a healthy FIDO HID device.
+      - name: Install Windows OpenSSH Client and Server
+        run: |
+          foreach ($name in 'OpenSSH.Client~~~~0.0.1.0', 'OpenSSH.Server~~~~0.0.1.0') {
+            if ((Get-WindowsCapability -Online -Name $name).State -ne 'Installed') {
+              $result = Add-WindowsCapability -Online -Name $name
+              if ($result.RestartNeeded) { throw "$name requires a restart" }
+            }
+          }
+          foreach ($executable in 'sshd.exe', 'ssh.exe', 'ssh-keygen.exe') {
+            if (-not (Test-Path "$env:SystemRoot\System32\OpenSSH\$executable")) {
+              throw "OpenSSH executable is missing: $executable"
+            }
+          }
+      - name: Run Windows system tests
+        id: tests
+        env:
+          RUST_LOG: warn,keyringd=debug
+        run: cargo windows-system-test ${{ inputs.coverage && '--coverage' || '' }}
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: windows-system
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage && steps.usbip-setup.outcome == 'success' }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: system-windows
+          directory: target/coverage/system-windows
+      - name: Upload setup diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-usbip-setup
+          path: target/test-reports/windows-usbip-setup
+          if-no-files-found: ignore
+          retention-days: 1

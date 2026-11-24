@@ -1,0 +1,10 @@
+mod profile_setup_interaction_page;
+pub(in crate::app::ui) use profile_setup_interaction_page::ProfileSetupInteractionPage;
+mod profile_setup_pin_view;
+use profile_setup_pin_view::ProfileSetupPinView;
+mod profile_setup_qr_view;
+use profile_setup_qr_view::ProfileSetupQrView;
+mod profile_setup_waiting_view;
+use profile_setup_waiting_view::ProfileSetupWaitingView;
+mod interaction_layout;
+use interaction_layout::interaction_body;

@@ -1,0 +1,15 @@
+mod authenticator_client_pin_request;
+mod authenticator_client_pin_response;
+mod authenticator_get_assertion_request;
+mod authenticator_get_assertion_response;
+mod authenticator_get_info_request;
+mod authenticator_get_info_response;
+mod authenticator_make_credential_request;
+mod authenticator_make_credential_response;
+mod client_data_hash;
+mod client_pin_subcommand;
+mod credential_protection_policy;
+mod ctap_command;
+mod pin_uv_auth_permissions;
+mod pin_uv_key_agreement_key;
+mod status_code;

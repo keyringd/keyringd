@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (leave empty to use workspace.package.version)
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build_release_assets:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    uses: ./.github/workflows/build-release-assets.yml
+    with:
+      channel: release
+      version: ${{ inputs.version }}
+    secrets: inherit
+
+  publish:
+    name: Publish GitHub Release
+    needs: build_release_assets
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.build_release_assets.outputs.commit }}
+          fetch-depth: 0
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: release-assets
+      - name: Publish release
+        uses: ./.github/actions/publish-release
+        with:
+          tag: ${{ needs.build_release_assets.outputs.tag }}
+          commit: ${{ needs.build_release_assets.outputs.commit }}
+      - name: Bump patch version after publication
+        uses: ./.github/actions/bump-release-version

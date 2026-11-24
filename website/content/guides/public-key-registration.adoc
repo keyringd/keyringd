@@ -1,0 +1,108 @@
+= Public key registration
+:description: Register your passkey and Device Key public keys according to your SSH server's support for certificates.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Open *Public Keys…* for your Profile. Choose the section that matches your server's support for SSH certificates, then copy the public keys for registration.
+
+[[ca-trust]]
+== For servers that support SSH certificates
+
+Your passkey acts as a certificate authority (CA). Its public key lets the server verify Device Certificates signed by that passkey. You register the public key once; each computer presents its Device Certificate when connecting. You do not need to register the certificates themselves.
+
+For an OpenSSH server:
+
+. Copy the *Certificate Authority Public Key* from *Public Keys…*.
+. Append the complete line to `~/.ssh/authorized_keys` for the server account you want to access.
+. Open *Test SSH connection…* and test the *Device Certificate*.
+
+The copied line looks like this:
+
+[source,text]
+----
+cert-authority,principals="keyringd:<derived identity>" sk-ecdsa-sha2-nistp256@openssh.com <public key> keyringd-ca
+----
+
+`cert-authority` marks the public key as a trusted certificate signer. `principals=` restricts accepted certificates to the identity derived from your passkey. With SK Device Key signatures and local authentication disabled, the entry also includes `no-touch-required` to allow connections without user presence. Keep the complete copied line when registering it.
+
+Repeat the registration for each server account you want to access. The same server registration works for new computers whose Device Keys are certified by your passkey.
+
+[[direct-keys]]
+== For servers that do not support SSH certificates
+
+In *Public Keys…*, use the *For servers that do not support SSH certificates* section. The two public keys serve different purposes:
+
+* Copy the *Device Key Public Key* to register this computer's hardware-protected key. Connections use the local key without passkey authentication.
+* Copy the *Passkey Public Key* to register the public key of your passkey. Connections require passkey or security-key interaction, but the same key can be used after changing computers.
+
+We recommend registering both. The Device Key allows everyday connections without passkey authentication. The passkey lets you connect after replacing your computer.
+
+=== OpenSSH
+
+. Use *Copy Device + Passkey Public Keys* to copy both public keys together.
+. Append the two copied lines to `~/.ssh/authorized_keys` for the server account you want to access.
+. Open *Test SSH connection…* and test the *Device Key* and *Passkey* separately.
+
+=== GitHub
+
+GitHub does not support SSH certificate authentication for repositories owned by personal accounts. Each public key must be registered separately:
+
+. In GitHub, open *Settings → SSH and GPG keys → New SSH key*.
+. Copy the *Device Key Public Key* from the *For servers that do not support SSH certificates* section of *Public Keys…*.
+. Give the key a title, select *Authentication Key*, and paste the copied public key.
+. Copy the *Passkey Public Key* and add it as another authentication key.
+
+The default ECDSA Device Key works without local authentication. If you selected SK signatures, enable local authentication so signatures include the user-presence flag required by GitHub. Remove the leading `verify-required` or `no-touch-required` option from the copied Device Key entry before pasting it into GitHub; register only the key type, base64-encoded key, and optional comment. GitHub does not support these server-registration options, and removing `no-touch-required` does not remove its user-presence requirement.
+
+See GitHub's https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account[SSH key registration guide].
+
+== Select a key or certificate for a host
+
+When a server accepts more than one of your keys, your SSH client may use a different authentication method than you intended. Keyringd's *Test SSH connection…* lets you test each key or certificate independently.
+
+To select a particular key or certificate for command-line SSH, see link:{site-path}usage/#_select_one_identity_for_a_host[Usage].
+
+== Key and signature formats
+
+During Profile creation, *Advanced settings → SSH authentication signature format* selects the signature format used when authenticating with a Device Certificate or the Device Key's public key. The default is `ecdsa-sha2-nistp256` for broad server compatibility. Select `sk-ecdsa-sha2-nistp256@openssh.com` when you want a compatible server to enforce user presence or verification flags. Both formats use the same hardware-protected Device Key; choosing SK does not add hardware protection.
+
+You can check the selected format under *SSH authentication signature format* in *Details…*. Replacing a Device Key preserves this selection.
+
+This setting does not change the passkey's signatures, either for direct SSH authentication or for signing a Device Certificate. Selecting ECDSA allows Device Key public-key authentication on older servers; certificate authentication still requires support for the passkey signature on the certificate.
+
+=== Public keys and certificates
+
+The table shows the default public-key and certificate formats. With SK selected, the Device Key uses `sk-ecdsa-sha2-nistp256@openssh.com` and its certificate uses `sk-ecdsa-sha2-nistp256-cert-v01@openssh.com`. The passkey's public-key format stays the same.
+
+[options="header",cols="1,2"]
+|===
+|Key or certificate |Format
+|Device Key |`ecdsa-sha2-nistp256`
+|Device Certificate |`ecdsa-sha2-nistp256-cert-v01@openssh.com`
+|Passkey public key |`sk-ecdsa-sha2-nistp256@openssh.com`
+|===
+
+=== Signatures
+
+During an SSH connection, the key used for authentication signs the authentication request. A Device Certificate also contains a separate signature from the passkey, made when the certificate was issued.
+
+[options="header",cols="2,1,3"]
+|===
+|Signature |Signing key |Format
+|SSH authentication with a Device Certificate |Device Key |`sk-ecdsa-sha2-nistp256@openssh.com` or `ecdsa-sha2-nistp256`, as selected in *SSH authentication signature format*
+|SSH authentication with the Device Key's public key |Device Key |The same selected format
+|SSH authentication with the passkey's public key |Passkey |`sk-ecdsa-sha2-nistp256@openssh.com` by default
+|Signature embedded in a Device Certificate when it is issued |Passkey |`sk-ecdsa-sha2-nistp256@openssh.com` by default
+|===
+
+Using a Device Certificate does not change the Device Key's authentication signature format. The certificate's key format and its embedded passkey signature are separate from the signature sent for each SSH connection.
+
+With SK signatures, Device Key local authentication determines the UP (user presence) and UV (user verification) flags. Successful local authentication sets both flags; when local authentication is disabled, neither is set. The Device Key's signature counter is always zero. Ordinary ECDSA signatures do not carry these flags or a counter.
+
+The CA and Device Key registration entries include `verify-required` when local authentication is enabled, or `no-touch-required` when it is disabled, for SK formats. Enabling or disabling local authentication changes these entries even if the public key stays the same. Replace the server's existing entry with the updated entry in *Public Keys…*. The passkey's direct registration is independent of this setting. See link:{site-path}usage/#_local_authentication[Local authentication] for the change workflow.
+
+The server must accept the key and authentication signature formats used for the connection. For certificate authentication, it must also accept the passkey's signature embedded in the Device Certificate. *Test SSH connection…* shows the relevant OpenSSH settings.
+
+For OpenSSH settings, see https://man.openbsd.org/sshd_config.5[sshd_config] and https://man.openbsd.org/sshd.8[sshd]. If authentication fails, follow link:{site-path}guides/troubleshooting/[Troubleshooting].

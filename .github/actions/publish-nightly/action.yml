@@ -1,0 +1,27 @@
+name: Publish nightly
+description: Replace the nightly prerelease with assembled assets.
+inputs:
+  commit:
+    description: Exact commit used to build the assets.
+    required: true
+  assets:
+    description: Assembled release assets directory.
+    default: release-assets
+runs:
+  using: composite
+  steps:
+    - name: Publish nightly
+      shell: bash
+      env:
+        RELEASE_COMMIT: ${{ inputs.commit }}
+        ASSETS: ${{ inputs.assets }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        test -s "$ASSETS/SHA256SUMS.txt"
+        if gh release view nightly > /dev/null 2>&1; then
+          gh release delete nightly --yes
+        fi
+        git push origin "+$RELEASE_COMMIT:refs/tags/nightly"
+        gh release create nightly "$ASSETS"/* --verify-tag \
+          --prerelease --latest=false --title nightly --notes ""

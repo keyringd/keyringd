@@ -1,0 +1,11 @@
+mod ssh_client_configuration_action_target;
+mod ssh_client_configuration_command_handler;
+#[allow(clippy::module_inception)]
+mod ssh_client_configuration_window;
+
+pub(crate) use keyringd_ui_core::ssh_client_configuration_window::SshClientConfigurationCommand;
+pub(crate) use keyringd_ui_core::ssh_client_configuration_window::SshClientConfigurationEvent;
+pub(crate) use keyringd_ui_core::ssh_client_configuration_window::SshClientConfigurationState;
+use ssh_client_configuration_action_target::SshClientConfigurationActionTarget;
+use ssh_client_configuration_command_handler::SshClientConfigurationCommandHandler;
+pub(crate) use ssh_client_configuration_window::SshClientConfigurationWindow;

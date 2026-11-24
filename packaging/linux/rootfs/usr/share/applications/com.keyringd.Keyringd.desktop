@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Keyringd
+Comment=Manage passkey-backed SSH identities
+Icon=com.keyringd.Keyringd
+StartupWMClass=com.keyringd.Keyringd
+Exec=keyringd settings
+DBusActivatable=true
+StartupNotify=true
+Categories=Settings;Security;

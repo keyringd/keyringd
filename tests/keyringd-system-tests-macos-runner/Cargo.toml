@@ -1,0 +1,21 @@
+[package]
+name = "keyringd-system-tests-macos-runner"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+test-support = ["keyringd-system-tests/test-support"]
+
+[dependencies]
+anyhow.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+keyringd-system-tests = { path = "../keyringd-system-tests" }
+keyringd-testkit = { path = "../keyringd-testkit" }
+keyringd-test-usbip = { path = "../keyringd-test-usbip" }
+serde_json.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["rt"] }

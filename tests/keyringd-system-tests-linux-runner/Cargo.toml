@@ -1,0 +1,16 @@
+[package]
+name = "keyringd-system-tests-linux-runner"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+keyringd-testkit = { path = "../keyringd-testkit" }
+keyringd-test-usbip = { path = "../keyringd-test-usbip" }
+anyhow.workspace = true
+tokio = { workspace = true, features = ["rt", "time"] }
+ctrlc.workspace = true
+sha2.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true

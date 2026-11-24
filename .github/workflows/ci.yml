@@ -1,0 +1,293 @@
+name: CI
+
+on:
+#  push:
+#    branches:
+#      - master
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      coverage:
+        description: Measure product coverage
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      coverage:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
+
+jobs:
+  test-linux:
+    name: Linux
+    env:
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/ut/linux
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview --component rustfmt --component clippy
+          rustup default stable
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-26.04
+      - name: Install Linux test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtss2-dev libgtk-4-dev libadwaita-1-dev libdbus-1-dev libudev-dev pkg-config swtpm swtpm-tools openssh-server xvfb xauth
+      - name: Check formatting
+        if: ${{ !inputs.coverage }}
+        run: cargo fmt --all -- --check
+      - name: Lint Linux workspace
+        if: ${{ !inputs.coverage }}
+        run: cargo clippy --workspace --exclude keyringd-windows --exclude keyringd-macos --all-targets --all-features -- -D warnings
+      - name: Build Linux and WSL applications
+        if: ${{ !inputs.coverage }}
+        run: cargo xtask build --locked
+      - name: Check shared system scenarios and Linux driver
+        if: ${{ !inputs.coverage }}
+        run: cargo check -p keyringd-system-tests --test scenarios --locked
+      - name: Test Linux workspace members
+        id: tests
+        run: >-
+          xvfb-run -a cargo xtask test-with-report ${{ inputs.coverage && '--coverage' || '' }} --
+          -p xtask
+          -p keyringd-testkit-macros
+          -p keyringd-system-tests-linux-runner
+          -p keyringd-fido
+          -p keyringd-fido-client
+          -p keyringd-test-authenticator
+          -p keyringd-test-usbip
+          -p keyringd-testkit
+          -p keyringd-ssh-agent-protocol
+          -p keyringd-ui-core
+          -p keyringd-core
+          -p keyringd-linux
+          -p keyringd-wsl
+          -p keyringd-system-tests-macos-runner
+          -p keyringd-system-tests
+          -p keyringd-system-tests-windows-runner
+          -p keyringd-wsl-system-tests
+          --all-targets
+          --features keyringd-linux/test-support,keyringd-wsl/test-support,keyringd-system-tests-macos-runner/test-support
+          -- --test-threads=1
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: linux
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: ut-linux
+          directory: target/coverage/ut-linux
+
+  test-windows:
+    name: Windows
+    env:
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/ut/windows
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview --component clippy
+          rustup default stable
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: windows-2025
+      - name: Lint Windows application
+        if: ${{ !inputs.coverage }}
+        run: cargo clippy -p keyringd-ui-core -p keyringd-core -p keyringd-windows --all-targets -- -D warnings
+      - name: Build Windows application
+        if: ${{ !inputs.coverage }}
+        run: cargo xtask build --locked
+      - name: Check shared system scenarios and Windows driver
+        if: ${{ !inputs.coverage }}
+        run: cargo check -p keyringd-system-tests --test scenarios --locked
+      - name: Test Windows workspace members
+        id: tests
+        run: >-
+          cargo xtask test-with-report ${{ inputs.coverage && '--coverage' || '' }} --
+          -p keyringd-fido
+          -p keyringd-fido-client
+          -p keyringd-test-authenticator
+          -p keyringd-test-usbip
+          -p keyringd-testkit
+          -p keyringd-ssh-agent-protocol
+          -p keyringd-ui-core
+          -p keyringd-core
+          -p keyringd-windows
+          -p keyringd-system-tests
+          -p keyringd-system-tests-windows-runner
+          -p keyringd-wsl-system-tests
+          --all-targets
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: windows
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: ut-windows
+          directory: target/coverage/ut-windows
+
+  test-macos:
+    name: macOS
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/ut/macos
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview --component clippy
+          rustup default stable
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: macos-15
+      - name: Lint macOS application
+        if: ${{ !inputs.coverage }}
+        run: cargo clippy -p xtask -p keyringd-ui-core -p keyringd-core -p keyringd-macos --features keyringd-macos/test-support --all-targets -- -D warnings
+      - name: Check macOS UI fixture
+        if: ${{ !inputs.coverage }}
+        run: cargo check --locked -p keyringd-macos --features test-support --bin keyringd-macos-ui-test-app
+      - name: Check shared system scenarios and macOS driver
+        if: ${{ !inputs.coverage }}
+        run: cargo check -p keyringd-system-tests --test scenarios --locked
+      - name: Build and verify the macOS development application
+        if: ${{ !inputs.coverage }}
+        run: |
+          cargo xtask build --locked
+          product=target/package-check/macos
+          cargo xtask dist --target macos --format app --ad-hoc target/debug/keyringd-macos --output-dir "$product"
+          codesign --verify --strict "$product/keyringd.app"
+          plutil -lint "$product/keyringd.app/Contents/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$product/keyringd.app/Contents/Info.plist")" = 13.0
+      - name: Check packaged macOS startup, login registration, and agent lifecycle
+        if: ${{ !inputs.coverage }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=target/package-check/macos/keyringd.app
+          RUST_LOG=info "$app/Contents/MacOS/keyringd" &
+          pid=$!
+          trap 'kill -TERM "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true' EXIT
+          export KEYRINGD_PACKAGE_CHECK_PID="$pid"
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import subprocess
+          import time
+
+          socket = pathlib.Path.home() / 'Library/Application Support/keyringd/agent.sock'
+          deadline = time.monotonic() + 15
+          while not socket.is_socket():
+              os.kill(int(os.environ['KEYRINGD_PACKAGE_CHECK_PID']), 0)
+              if time.monotonic() >= deadline:
+                  raise RuntimeError('Packaged Keyringd did not create its agent socket')
+              time.sleep(0.1)
+          result = subprocess.run(
+              ['/usr/bin/ssh-add', '-l'],
+              env=dict(os.environ, SSH_AUTH_SOCK=str(socket)),
+              capture_output=True, text=True, timeout=10,
+          )
+          assert result.returncode == 1 and 'no identities' in result.stdout.lower(), result
+
+          # Exercise the real mainApp service through the packaged product. The
+          # UI fixture bypasses this registration path, and a socket alone does
+          # not prove that macOS accepted the login item.
+          logs = pathlib.Path.home() / 'Library/Logs/keyringd'
+          registration = [
+              line
+              for path in logs.glob('keyringd.log*')
+              for line in path.read_text().splitlines()
+              if 'keyringd_macos::system::mac_os_login_item:' in line
+              and ('Checking macOS login item registration' in line
+                   or 'Checked macOS login item status after registration' in line)
+          ]
+          assert any(
+              'state=Enabled ' in line or 'state=RequiresApproval ' in line
+              for line in registration
+          ), f'macOS did not report a registered login item: {registration}'
+          PY
+          kill -TERM "$pid"
+          wait "$pid"
+          trap - EXIT
+          test ! -S "$HOME/Library/Application Support/keyringd/agent.sock"
+      - name: Test macOS workspace members
+        run: >-
+          cargo xtask test-with-report ${{ inputs.coverage && '--coverage' || '' }} --
+          -p keyringd-fido
+          -p keyringd-fido-client
+          -p keyringd-test-authenticator
+          -p keyringd-test-usbip
+          -p keyringd-testkit
+          -p keyringd-ssh-agent-protocol
+          -p keyringd-ui-core
+          -p keyringd-core
+          -p keyringd-macos
+          -p keyringd-system-tests
+          -p keyringd-system-tests-macos-runner
+          -p xtask
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: macos
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: ut-macos
+          directory: target/coverage/ut-macos

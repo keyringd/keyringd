@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure|abort-upgrade|abort-deconfigure|abort-remove)
+        if [ -z "${DPKG_ROOT:-}" ]; then
+            deb-systemd-helper --user unmask keyringd.socket >/dev/null || true
+            if deb-systemd-helper --quiet --user was-enabled keyringd.socket; then
+                deb-systemd-helper --user enable keyringd.socket >/dev/null || true
+            else
+                deb-systemd-helper --user update-state keyringd.socket >/dev/null || true
+            fi
+        fi
+        ;;
+esac
+
+if [ "$1" = configure ] && command -v deb-systemd-invoke >/dev/null; then
+    deb-systemd-invoke --user daemon-reload || true
+    deb-systemd-invoke --user start keyringd.socket || true
+fi

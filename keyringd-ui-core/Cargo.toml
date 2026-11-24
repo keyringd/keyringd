@@ -1,0 +1,25 @@
+[package]
+name = "keyringd-ui-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+test-support = ["keyringd-core/test-support"]
+
+[dependencies]
+futures-util.workspace = true
+keyringd-core = { path = "../keyringd-core" }
+keyringd-fido = { path = "../keyringd-fido" }
+keyringd-fido-client = { path = "../keyringd-fido-client" }
+keyringd-ssh-agent-protocol = { path = "../keyringd-ssh-agent-protocol" }
+
+tokio = { workspace = true, features = ["sync", "rt", "macros"] }
+tracing.workspace = true
+
+tokio-util = { workspace = true, features = ["rt"] }
+
+[dev-dependencies]
+keyringd-core = { path = "../keyringd-core", features = ["test-support"] }
+keyringd-testkit = { path = "../tests/keyringd-testkit" }
+tokio = { workspace = true, features = ["rt", "macros", "time"] }

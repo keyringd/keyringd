@@ -1,0 +1,28 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+clap = { workspace = true, features = ["derive"] }
+ctrlc.workspace = true
+plist.workspace = true
+keyringd-testkit = { path = "../tests/keyringd-testkit" }
+keyringd-system-tests-macos-runner = { path = "../tests/keyringd-system-tests-macos-runner" }
+keyringd-system-tests-windows-runner = { path = "../tests/keyringd-system-tests-windows-runner" }
+serde_json.workspace = true
+rustc-demangle.workspace = true
+semver.workspace = true
+sha2.workspace = true
+toml_edit.workspace = true
+tempfile.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+ctrlc = { workspace = true, features = ["termination"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyringd-system-tests-linux-runner = { path = "../tests/keyringd-system-tests-linux-runner" }

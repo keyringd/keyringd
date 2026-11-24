@@ -1,0 +1,3 @@
+mod keyringd_agent_request_handler;
+
+pub use keyringd_agent_request_handler::KeyringdAgentRequestHandler;

@@ -1,0 +1,47 @@
+name: Assemble release assets
+description: Collect distribution packages, archive the WSL proxy, and calculate SHA256 checksums.
+inputs:
+  staging:
+    description: Directory containing downloaded build artifacts.
+    default: artifacts
+  output:
+    description: Directory for publishable assets.
+    default: release-assets
+runs:
+  using: composite
+  steps:
+    - name: Assemble assets and checksums
+      shell: bash
+      env:
+        STAGING: ${{ inputs.staging }}
+        OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        mkdir -p "$OUTPUT"
+        output="$(realpath "$OUTPUT")"
+        version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)"
+        : "${version:?WSL proxy version is missing}"
+        proxy_archive="keyringd-wsl-$version-x86_64.tar.gz"
+        chmod 0755 "$STAGING/wsl-executable/keyringd-wsl-proxy"
+        tar -czf "$output/$proxy_archive" \
+          -C "$STAGING/wsl-executable" keyringd-wsl-proxy
+        names=("$proxy_archive")
+        for specification in windows-msi:msi macos-package:app.zip \
+          wsl-debian-package:deb wsl-rpm-package:rpm \
+          linux-debian-package:deb linux-rpm-package:rpm; do
+          directory="${specification%:*}"
+          extension="${specification#*:}"
+          files=("$STAGING/$directory/"*."$extension")
+          if [ "${#files[@]}" -ne 1 ] || [ ! -f "${files[0]}" ]; then
+            echo "Expected one $extension asset in $directory" >&2
+            exit 1
+          fi
+          name="$(basename "${files[0]}")"
+          cp "${files[0]}" "$output/$name"
+          names+=("$name")
+        done
+        cd "$output"
+        printf '%s\n' "${names[@]}" | LC_ALL=C sort | while IFS= read -r name; do
+          sha256sum -- "$name"
+        done > SHA256SUMS.txt

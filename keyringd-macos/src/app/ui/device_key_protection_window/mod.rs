@@ -1,0 +1,8 @@
+#[allow(clippy::module_inception)]
+mod device_key_protection_window;
+mod device_key_protection_window_command_handler;
+
+pub(crate) use device_key_protection_window::DeviceKeyProtectionWindow;
+use device_key_protection_window_command_handler::DeviceKeyProtectionWindowCommandHandler;
+pub(crate) use keyringd_ui_core::device_key_protection_window::DeviceKeyProtectionProps;
+use keyringd_ui_core::device_key_protection_window::DeviceKeyProtectionState;

@@ -1,0 +1,34 @@
+[package]
+name = "keyringd-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+test-support = []
+
+[dependencies]
+futures-util.workspace = true
+keyringd-fido = { path = "../keyringd-fido" }
+keyringd-fido-client = { path = "../keyringd-fido-client" }
+keyringd-ssh-agent-protocol = { path = "../keyringd-ssh-agent-protocol" }
+base64.workspace = true
+ecdsa.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
+getrandom.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "process", "rt", "sync", "time"] }
+tokio-util.workspace = true
+tempfile.workspace = true
+tracing.workspace = true
+time = { workspace = true, features = ["formatting", "local-offset", "macros"] }
+gethostname.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["io-util", "rt-multi-thread"] }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+mockall.workspace = true
+keyringd-testkit = { path = "../tests/keyringd-testkit" }

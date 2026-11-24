@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="625" viewBox="0 0 1040 625" role="img" aria-labelledby="title desc">
+  <title id="title">Profiles, keys, and SSH identities</title>
+  <desc id="desc">A profile records a Passkey and a certified Device Key. The Passkey’s private key stays on the authenticator and the Device Key’s private key stays in hardware. The agent can offer the Passkey, Device Key, or Device Certificate identity.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#576d68"/></marker></defs>
+  <style>text{font-family:'Segoe UI',sans-serif;fill:#183c35;font-size:17px}.heading{font-size:20px;font-weight:650}.small{font-size:15px;fill:#526b65}.box{fill:#fff;stroke:#bdcdc5;stroke-width:1.5}.green{fill:#e0eee6;stroke:#88ad99;stroke-width:1.5}.line{fill:none;stroke:#576d68;stroke-width:2;marker-end:url(#arrow)}</style>
+  <rect width="1040" height="625" rx="12" fill="#f6f8f7"/>
+  <text x="520" y="35" text-anchor="middle" class="small">Private key locations</text>
+  <rect x="55" y="58" width="365" height="75" rx="10" class="box"/>
+  <text x="237" y="90" text-anchor="middle" class="heading">Passkey private key</text>
+  <text x="237" y="115" text-anchor="middle" class="small">USB security key / smartphone</text>
+  <rect x="565" y="58" width="420" height="75" rx="10" class="box"/>
+  <text x="775" y="90" text-anchor="middle" class="heading">Device Key private key</text>
+  <text x="775" y="115" text-anchor="middle" class="small">TPM / Secure Enclave</text>
+  <rect x="30" y="178" width="980" height="260" rx="16" fill="#edf2ef" stroke="#bdcdc5" stroke-dasharray="6 5"/>
+  <text x="55" y="211" class="heading">Profile</text>
+  <text x="160" y="211" class="small">ID, display name, enabled state</text>
+  <rect x="55" y="234" width="365" height="170" rx="10" class="box"/>
+  <text x="78" y="269" class="heading">Passkey</text>
+  <text x="78" y="302">Credential ID / User Handle</text>
+  <text x="78" y="331">Public key / SSH signature format</text>
+  <text x="78" y="382" class="small">Identifies and verifies the credential</text>
+  <rect x="565" y="234" width="420" height="170" rx="10" class="green"/>
+  <text x="588" y="269" class="heading">DeviceKey</text>
+  <text x="588" y="302">Handle, local authentication, persistence</text>
+  <text x="588" y="331">SSH signature format</text>
+  <rect x="588" y="350" width="374" height="37" rx="7" fill="#fff" stroke="#88ad99"/>
+  <text x="775" y="375" text-anchor="middle">Device Certificate with public key</text>
+  <path d="M237 133V234" class="line"/>
+  <path d="M775 133V234" class="line"/>
+  <path d="M420 368H588" class="line"/>
+  <text x="504" y="345" text-anchor="middle" class="small">Signed by the Passkey</text>
+  <text x="520" y="477" text-anchor="middle" class="small">Identities offered by the SSH agent</text>
+  <rect x="55" y="514" width="280" height="79" rx="10" class="box"/>
+  <text x="195" y="547" text-anchor="middle" class="heading">Passkey</text>
+  <text x="195" y="574" text-anchor="middle" class="small">Signs with the Passkey</text>
+  <rect x="380" y="514" width="280" height="79" rx="10" class="box"/>
+  <text x="520" y="547" text-anchor="middle" class="heading">Device Key</text>
+  <text x="520" y="574" text-anchor="middle" class="small">Signs with the Device Key</text>
+  <rect x="705" y="514" width="280" height="79" rx="10" class="box"/>
+  <text x="845" y="547" text-anchor="middle" class="heading">Device Certificate</text>
+  <text x="845" y="574" text-anchor="middle" class="small">Signs with the Device Key</text>
+  <path d="M195 404V514" class="line"/>
+  <path d="M625 404V460H520V514" class="line"/>
+  <path d="M845 404V514" class="line"/>
+</svg>

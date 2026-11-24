@@ -1,0 +1,11 @@
+[Unit]
+Description=Keyringd SSH Agent socket
+Documentation=https://github.com/keyringd/keyringd
+
+[Socket]
+ListenStream=%t/keyringd-agent.sock
+SocketMode=0600
+RemoveOnStop=true
+
+[Install]
+WantedBy=sockets.target

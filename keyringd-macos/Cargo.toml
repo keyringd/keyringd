@@ -1,0 +1,66 @@
+[package]
+name = "keyringd-macos"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "keyringd-macos"
+path = "src/main.rs"
+
+[[bin]]
+name = "keyringd-macos-ui-test-app"
+path = "src/bin/ui_test_app.rs"
+required-features = ["test-support"]
+
+[features]
+# UI tests only. Adds the fixture entry point that shows the product UI with
+# test backends, plus the in-process accessibility driver it is operated by.
+# Never enabled for a distributed build.
+test-support = ["dep:keyringd-testkit", "keyringd-core/test-support", "keyringd-ui-core/test-support", "dep:keyringd-test-usbip", "keyringd-fido-client/test-support"]
+
+[dependencies]
+futures-util.workspace = true
+anyhow.workspace = true
+keyringd-core = { path = "../keyringd-core" }
+keyringd-ui-core = { path = "../keyringd-ui-core" }
+keyringd-fido = { path = "../keyringd-fido" }
+keyringd-fido-client = { path = "../keyringd-fido-client" }
+keyringd-ssh-agent-protocol = { path = "../keyringd-ssh-agent-protocol" }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-util.workspace = true
+getrandom.workspace = true
+dirs.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+tempfile.workspace = true
+
+block2.workspace = true
+objc2.workspace = true
+image = { workspace = true, features = ["png"] }
+objc2-app-kit = { workspace = true, features = ["block2", "objc2-core-foundation", "NSAccessibilityConstants", "NSAccessibilityProtocols", "NSAlert", "NSApplication", "NSBitmapImageRep", "NSBox", "NSButton", "NSCell", "NSColor", "NSColorSpace", "NSControl", "NSDragging", "NSDraggingSession", "NSFont", "NSFontDescriptor", "NSGraphics", "NSImage", "NSImageRep", "NSImageView", "NSLayoutAnchor", "NSLayoutConstraint", "NSMenu", "NSMenuItem", "NSParagraphStyle", "NSPasteboard", "NSPasteboardItem", "NSPopUpButton", "NSProgressIndicator", "NSResponder", "NSRunningApplication", "NSScrollView", "NSSecureTextField", "NSSegmentedCell", "NSSegmentedControl", "NSStatusBar", "NSStatusBarButton", "NSStatusItem", "NSStackView", "NSSwitch", "NSTableColumn", "NSTableView", "NSText", "NSTextField", "NSTextView", "NSToolbar", "NSToolbarItem", "NSUserInterfaceItemIdentification", "NSView", "NSWindow", "NSWorkspace"] }
+objc2-foundation = { workspace = true, features = ["objc2-core-services", "NSAppleEventManager", "NSAppleEventDescriptor", "NSArray", "NSData", "NSDistributedNotificationCenter", "NSIndexSet", "NSNotification", "NSString"] }
+dispatch2.workspace = true
+objc2-service-management = { workspace = true, features = ["SMAppService"] }
+qrcode = { workspace = true, features = ["image"] }
+security-framework = { workspace = true, features = ["OSX_10_15"] }
+security-framework-sys.workspace = true
+core-foundation.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
+libc.workspace = true
+tracing.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+keyringd-test-usbip = { path = "../tests/keyringd-test-usbip", optional = true }
+keyringd-testkit = { path = "../tests/keyringd-testkit", optional = true }
+
+[dev-dependencies]
+keyringd-core = { path = "../keyringd-core", features = ["test-support"] }
+keyringd-testkit = { path = "../tests/keyringd-testkit" }
+
+[build-dependencies]
+anyhow.workspace = true
+cargo-about.workspace = true
+krates.workspace = true
+toml-span.workspace = true

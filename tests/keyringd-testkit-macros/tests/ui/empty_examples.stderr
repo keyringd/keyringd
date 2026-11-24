@@ -1,0 +1,5 @@
+error: examples requires at least one named value
+ --> tests/ui/empty_examples.rs:5:20
+  |
+5 |         examples: [];
+  |                    ^

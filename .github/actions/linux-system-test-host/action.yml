@@ -1,0 +1,31 @@
+name: Linux system test host
+description: Install Linux system test host dependencies and enable virtual Bluetooth when available.
+runs:
+  using: composite
+  steps:
+    - name: Install Linux system test host dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          bluez bluez-test-tools build-essential dnf e2fsprogs git kmod mkosi systemd-container \
+          libadwaita-1-dev libdbus-1-dev libgtk-4-dev libtss2-dev \
+          linux-tools-generic libudev-dev openssl pkg-config rpm
+    - name: Prepare optional virtual Bluetooth support
+      shell: bash
+      run: |
+        uname -r
+        if modinfo hci_vhci; then
+          sudo modprobe hci_vhci
+          test -e /dev/vhci
+        else
+          echo "::notice::hci_vhci is unavailable; BLE-dependent scenarios will be skipped."
+        fi
+        command -v btvirt
+    - name: Set up Java and Gradle cache
+      uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '21'
+        cache: gradle
+        cache-dependency-path: tests/keyringd-test-usbip/authenticator-server/gradle/libs.versions.toml

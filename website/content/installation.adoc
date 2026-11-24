@@ -1,0 +1,250 @@
+= Installation
+:description: Install Keyringd on your platform and connect your SSH client to its hardware-backed agent.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Download the package for your operating system from https://github.com/keyringd/keyringd/releases[GitHub Releases], then follow the installation and SSH client setup steps below.
+
+== Platform requirements
+
+[options="header",cols="1,3"]
+|===
+|Platform |Requirements
+|Linux desktop |A usable TPM 2.0 and a desktop session with systemd user services
+|Windows |Windows 11 version 23H2 or later with a usable TPM 2.0
+|WSL2 |Windows meeting the requirements above, and a WSL distribution with systemd user services and Windows interoperability enabled
+|macOS |macOS 13 or later on a Mac with Apple silicon
+|===
+
+You also need an OpenSSH client. For your passkey, use an Android device running Android 14 or later, an iPhone running iOS 16 or later, or a FIDO2 certified security key.
+
+Using a phone passkey requires Bluetooth Low Energy (BLE) support and network access on both the computer and the phone.
+
+== Linux desktop
+
+=== 1. Install the package
+
+Install the downloaded deb or rpm using your distribution's package manager. Replace the example filename with the package you downloaded.
+
+For Debian or Ubuntu:
+
+[source,sh]
+----
+sudo apt install ./keyringd_VERSION-RELEASE_amd64.deb
+----
+
+For Fedora or another RPM-based distribution:
+
+[source,sh]
+----
+sudo dnf install ./keyringd-VERSION-RELEASE.x86_64.rpm
+----
+
+If Profiles reports that you need TPM access, choose *Grant TPM access…*.
+On systems where the `tss` group controls access to `/dev/tpmrm0`, an administrator can authorize adding your account to that group.
+Sign out and back in to apply the change.
+
+=== 2. Configure SSH_AUTH_SOCK
+
+Open Keyringd from the application menu and choose *Configure SSH Clients… → Configure*. This saves the following in `~/.config/environment.d/60-keyringd.conf` (or under `XDG_CONFIG_HOME` if you have set it):
+
+[source,sh]
+----
+SSH_AUTH_SOCK=${XDG_RUNTIME_DIR}/keyringd-agent.sock
+----
+
+Configure also adds two systemd user drop-ins so that GCR and OpenSSH leave this setting in place:
+
+* `~/.config/systemd/user/gcr-ssh-agent.socket.d/60-keyringd.conf`
+* `~/.config/systemd/user/ssh-agent.socket.d/60-keyringd.conf`
+
+If `XDG_CONFIG_HOME` is set to an absolute path, both drop-ins are written under that directory in place of `~/.config`.
+
+Sign out and back in to apply the setting to desktop applications and terminals. SSH and Git can then use the same agent.
+
+The package uses systemd user socket activation to start Keyringd when an SSH client connects. After setup, you do not need to launch the app before each SSH connection.
+
+To remove the setting and both drop-ins, choose *Configure SSH Clients… → Unconfigure*, then sign out and back in. The packaged agent remains available through socket activation.
+
+=== Enable the TPM access button for a manual installation
+
+If you installed Keyringd without a DEB or RPM, install the Polkit and account management tools first.
+The packages are `pkexec` and `passwd` on Debian or Ubuntu, and `polkit` and `shadow-utils` on Fedora.
+
+From the Keyringd source checkout that matches your installed binary, run:
+
+[source,sh]
+----
+rootfs=packaging/linux/rootfs
+sudo install -D -o root -g root -m 0755 \
+    "$rootfs/usr/libexec/keyringd/grant-tpm-access" \
+    /usr/libexec/keyringd/grant-tpm-access
+sudo install -D -o root -g root -m 0644 \
+    "$rootfs/usr/share/polkit-1/actions/com.keyringd.grant-tpm-access.policy" \
+    /usr/share/polkit-1/actions/com.keyringd.grant-tpm-access.policy
+----
+
+Reopen Profiles to check TPM access. The button requires a desktop session with a Polkit authentication agent.
+
+== Windows
+
+=== 1. Install the package
+
+Run the downloaded `keyringd-VERSION-x86_64.msi` and follow the installer.
+
+The installer configures Keyringd to start automatically when you sign in to Windows. With automatic startup enabled, you do not need to launch the app before each SSH connection.
+
+=== 2. Configure SSH_AUTH_SOCK
+
+If Keyringd is not running, start it from the Start menu. Right-click the Keyringd icon in the taskbar notification area and choose *Configure SSH Clients… → SSH_AUTH_SOCK: Configure*. This sets the user's `SSH_AUTH_SOCK`. Restart the applications and terminals that need to use the agent.
+
+To remove the setting, choose *Configure SSH Clients… → SSH_AUTH_SOCK: Unconfigure*, then restart those applications. This does not change the app's startup registration.
+
+=== Git for Windows
+
+Git for Windows' bundled SSH client uses a different local connection from Windows OpenSSH. Keep Keyringd running and choose *Configure SSH Clients… → Copy Git for Windows SSH setting*. Add the copied line to `~/.bash_profile` in Git Bash:
+
+[source,sh]
+----
+export SSH_AUTH_SOCK="$(cygpath -u "$LOCALAPPDATA")/keyringd/agent.sock"
+----
+
+Open a new Git Bash terminal and run `ssh-add -l` to check that the agent lists your Profile's keys. SSH and Git launched from that shell use the same setting. To remove it, delete the `SSH_AUTH_SOCK` line and reopen Git Bash.
+
+The copied setting only changes the Git Bash environment when you apply it. Windows OpenSSH launched from another terminal can continue using the Windows setting. If you launch Windows OpenSSH from this Git Bash shell, use the following option, replacing `<SID>` with the value shown by `whoami /user` in PowerShell: `-o 'IdentityAgent=\\\\.\pipe\keyringd-agent-<SID>'`.
+
+=== Optional: Change automatic startup
+
+To disable automatic startup, open Windows *Settings → Apps → Startup* and turn off *Keyringd*. You can enable it again in the same place.
+
+If you disable automatic startup, launch Keyringd from the Start menu before using its agent with SSH or Git. See https://support.microsoft.com/en-US/Windows/Experience/Startup-Boot/configure-startup-applications-in-windows[Microsoft's startup application instructions].
+
+== WSL2
+
+=== 1. Check WSL prerequisites
+
+The WSL package starts its bundled Windows app through WSL's Windows interoperability. Check both systemd user services and Windows execution inside WSL:
+
+[source,sh]
+----
+systemctl --user status
+cmd.exe /c ver
+----
+
+If `cmd.exe` is not on your PATH, try `/mnt/c/Windows/System32/cmd.exe /c ver`.
+
+If systemd or interoperability is disabled, edit `/etc/wsl.conf` to enable the following settings, preserving any existing configuration:
+
+[source,ini]
+----
+[boot]
+systemd=true
+
+[interop]
+enabled=true
+----
+
+Restart that distribution from Windows with `wsl --terminate <distribution-name>`, then open it again and repeat the checks.
+
+Ubuntu 26.04 worked with its default Windows interoperability configuration in our WSL package tests. Fedora 44 required the additional interpreter registration described below.
+
+==== Fedora: Windows commands report `Exec format error`
+
+If Windows interoperability is enabled but even `cmd.exe` reports `Exec format error`, check:
+
+[source,sh]
+----
+cat /proc/sys/fs/binfmt_misc/WSLInterop
+----
+
+The entry should be enabled and name `/init` as its interpreter. In the Fedora 44 image tested, an empty `binfmt.d` directory caused systemd to skip WSL's interpreter registration. Register the standard WSL interpreter persistently:
+
+[source,sh]
+----
+sudo install -d /etc/binfmt.d
+printf '%s\n' ':WSLInterop:M::MZ::/init:P' | sudo tee /etc/binfmt.d/WSLInterop.conf >/dev/null
+sudo systemctl restart systemd-binfmt.service
+cmd.exe /c ver
+----
+
+This configures WSL's ability to execute Windows programs. It is separate from the Keyringd RPM. See https://github.com/microsoft/WSL/blob/master/doc/docs/technical-documentation/interop.md[Microsoft's WSL interoperability documentation] for the interpreter and interop-server mechanism.
+
+=== 2. Install the package
+
+Install the WSL package inside your WSL distribution. Replace the example filename with the package you downloaded.
+
+For Debian or Ubuntu:
+
+[source,sh]
+----
+sudo apt install ./keyringd-wsl_VERSION-RELEASE_amd64.deb
+----
+
+For Fedora or another RPM-based distribution:
+
+[source,sh]
+----
+sudo dnf install ./keyringd-wsl-VERSION-RELEASE.x86_64.rpm
+----
+
+The package includes the WSL proxy and Windows app. Use the Windows app to create Profiles and complete passkey or security-key operations.
+
+=== 3. Configure SSH_AUTH_SOCK in WSL
+
+Add the following to your shell startup file inside WSL, such as `~/.bashrc` for Bash:
+
+[source,sh]
+----
+export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/keyringd-agent.sock"
+----
+
+You can use *Copy WSL SSH setting* in the Windows app to copy this line. Open a new shell to apply it. To undo the setting, remove the line and reopen the shell.
+
+Once configured, systemd starts the WSL proxy when an SSH client connects to its socket. The proxy starts the bundled Windows app if no Windows agent is running, so Windows automatic startup is not required for WSL. You do not need to launch either component before each connection.
+
+The WSL proxy exits after all connections close and it remains idle for 60 seconds. The next connection starts it again; this does not close the Windows app.
+
+== macOS
+
+=== 1. Install the app
+
+Extract the downloaded `keyringd-VERSION-arm64.app.zip`, move `keyringd.app` to *Applications*, and open it. The app is Developer ID signed, notarized, and stapled. macOS 13 or later on Apple silicon is required.
+
+On first launch, Keyringd registers itself to start when you log in. Each user who wants to use Keyringd should open the app once. You can manage automatic startup in *System Settings → General → Login Items*. Keyringd runs in the menu bar and opens its own private socket.
+
+To try the running agent while keeping your current default agent, run:
+
+[source,sh]
+----
+SSH_AUTH_SOCK="$HOME/Library/Application Support/keyringd/agent.sock" ssh-add -L
+----
+
+An empty installation reports that the agent has no identities. Open *Profiles* from the menu bar to create a Profile.
+
+=== 2. Make Keyringd the default SSH agent (optional)
+
+Choose *Configure SSH Clients… → Configure* to make Keyringd the default SSH agent. Keyringd replaces the macOS agent socket with a symbolic link to its own socket. SSH clients that use `SSH_AUTH_SOCK` will connect to Keyringd. Keyringd saves your choice and reapplies it each time it starts.
+
+Choose *Configure SSH Clients… → Unconfigure* to restore the macOS SSH agent as the default.
+
+=== Update the app
+
+Choose *Quit Keyringd* after pending operations finish, replace the app in *Applications* with the new version, then open it. Your Profiles, Keychain keys, and Configure selection are preserved.
+
+=== Uninstall the app
+
+If you want to delete Device Keys, remove their Profiles in Keyringd first. To restore the macOS agent in the current session, choose *Configure SSH Clients… → Unconfigure*. Quit Keyringd, then move `/Applications/keyringd.app` to the Trash.
+
+If you delete the app while Configure is enabled, the symbolic link and original socket backup remain for that session. Once Keyringd exits, connections through the link fail. Signing out and back in creates a fresh macOS socket.
+
+To remove saved Profile data and the Configure selection, open *Go → Go to Folder* in Finder and delete `~/Library/Application Support/keyringd`.
+
+== Next steps
+
+Continue with link:{site-path}getting-started/[Getting started] to create a Profile, register your public key on the server, and test the connection.
+
+== Build from source
+
+See https://github.com/keyringd/keyringd/blob/master/docs/internal/DEVELOPMENT.md[Development] for build instructions.

@@ -1,0 +1,15 @@
+name: Test results
+description: Upload the recorded JSON and evidence without generating HTML.
+inputs:
+  environment:
+    description: Test environment name
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/upload-artifact@v7
+      with:
+        name: test-results-${{ inputs.environment }}
+        path: target/test-results/
+        if-no-files-found: warn
+        retention-days: 1

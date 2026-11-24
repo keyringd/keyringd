@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+# This fixture changes only the nspawn container's mount namespace.
+# systemd-detect-virt reports the outer WSL environment even inside nspawn.
+if [ "$(cat /run/systemd/container 2>/dev/null)" != systemd-nspawn ]; then
+    echo 'Bluetooth adapter visibility fixture requires systemd-nspawn' >&2
+    exit 1
+fi
+adapter_directory=/sys/class/bluetooth
+fixture_source=keyringd-e2e-no-adapters
+
+case "${1:-}" in
+    hide)
+        # A machine without Bluetooth support may already lack the directory.
+        [ -d "$adapter_directory" ] || exit 0
+        if mountpoint -q "$adapter_directory"; then
+            echo 'Bluetooth adapter visibility fixture is already mounted' >&2
+            exit 1
+        fi
+        mount -t tmpfs -o ro,nosuid,nodev,noexec "$fixture_source" "$adapter_directory"
+        ;;
+    show)
+        if mountpoint -q "$adapter_directory"; then
+            # Never unmount anything except this fixture's own mount.
+            [ "$(findmnt -n -o SOURCE --mountpoint "$adapter_directory")" = "$fixture_source" ]
+            umount "$adapter_directory"
+        fi
+        ;;
+    *)
+        echo 'Usage: bluetooth-adapters hide|show' >&2
+        exit 2
+        ;;
+esac

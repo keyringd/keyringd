@@ -1,0 +1,11 @@
+[Unit]
+Description=Keyringd desktop SSH Agent
+Documentation=https://github.com/keyringd/keyringd
+Requires=keyringd-agent.socket
+After=keyringd-agent.socket graphical-session-pre.target
+PartOf=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=com.keyringd.Keyringd
+ExecStart=/usr/bin/keyringd agent

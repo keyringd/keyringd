@@ -1,0 +1,27 @@
+= Documentation
+:description: Find installation instructions, everyday usage, task guides, and the security model for Keyringd.
+:sectanchors:
+:notitle:
+
+New to Keyringd? Start with link:{site-path}getting-started/[Getting started] to set up a Profile and make your first SSH connection.
+
+== Start here
+
+* link:{site-path}getting-started/[Getting started] — Set up one Profile, register a public key, and connect to a destination.
+* link:{site-path}how-it-works/[How it works] — Understand Passkeys, Device Keys, and certificate authentication.
+* link:{site-path}installation/[Installation] — Install Keyringd and configure your SSH client on Windows, macOS, or Linux.
+
+== Use your keys
+
+* link:{site-path}guides/public-key-registration/[Public key registration] — Choose and register the identity your destination accepts.
+* link:{site-path}usage/[Usage] — Manage Profiles, select identities, and configure local authentication.
+* link:{site-path}guides/adding-or-replacing-a-computer/[Adding or replacing a computer] — Add or retire computers and handle lost or compromised computers and Passkeys.
+* link:{site-path}using-keyringd-safely/[Using Keyringd safely] — Protect your passkey and computer, and approve authentication requests safely.
+* link:{site-path}guides/git-signing/[Git signing] — Sign and verify Git commits and tags.
+* link:{site-path}guides/troubleshooting/[Troubleshooting] — Diagnose connection and key-operation problems.
+
+'''
+
+* link:{site-path}security-model/[Security Model] — Examine the threat model, trust boundaries, hardware protection, and revocation limits.
+* link:{site-path}faq/[FAQ] — Find quick answers about passkeys, server compatibility, and everyday use.
+* link:{site-path}project/[Project] — Learn about the project's origins, principles, and license.

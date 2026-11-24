@@ -1,0 +1,74 @@
+[package]
+name = "keyringd-windows"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+test-support = ["keyringd-ui-core/test-support", "keyringd-core/test-support", "keyringd-fido-client/test-support"]
+
+[[bin]]
+name = "keyringd-windows-ui-test-app"
+path = "src/bin/ui_test_app.rs"
+required-features = ["test-support"]
+
+[[bin]]
+name = "keyringd"
+path = "src/main.rs"
+
+[dependencies]
+keyringd-core = { path = "../keyringd-core" }
+keyringd-ui-core = { path = "../keyringd-ui-core" }
+keyringd-fido = { path = "../keyringd-fido" }
+keyringd-fido-client = { path = "../keyringd-fido-client" }
+keyringd-ssh-agent-protocol = { path = "../keyringd-ssh-agent-protocol" }
+anyhow.workspace = true
+ecdsa.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
+getrandom.workspace = true
+futures-util.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["io-std", "io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
+tokio-util.workspace = true
+tracing.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tempfile.workspace = true
+qrcode.workspace = true
+tray-icon.workspace = true
+windows-canvas.workspace = true
+windows-reactor = { workspace = true, features = ["canvas"] }
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Networking_WindowsWebServices",
+    "Win32_Security_Authorization",
+    "Win32_Security_Cryptography",
+    "Win32_Storage_FileSystem",
+    "Win32_System_DataExchange",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_System_Registry",
+    "Win32_System_Threading",
+    "Win32_UI_Controls",
+    "Win32_UI_Shell",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[build-dependencies]
+anyhow.workspace = true
+cargo-about.workspace = true
+image = { workspace = true, features = ["ico"] }
+krates.workspace = true
+toml-span.workspace = true
+windows-reactor-setup.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
+keyringd-core = { path = "../keyringd-core", features = ["test-support"] }
+keyringd-testkit = { path = "../tests/keyringd-testkit" }

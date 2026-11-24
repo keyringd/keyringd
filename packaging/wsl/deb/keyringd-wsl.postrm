@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = purge ] && [ -z "${DPKG_ROOT:-}" ] && command -v deb-systemd-helper >/dev/null; then
+    deb-systemd-helper --user purge keyringd.socket >/dev/null || true
+fi
+
+if command -v deb-systemd-invoke >/dev/null; then
+    deb-systemd-invoke --user daemon-reload || true
+fi

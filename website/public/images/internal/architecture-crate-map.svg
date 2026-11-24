@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="650" viewBox="0 0 1040 650" role="img" aria-labelledby="title desc">
+  <title id="title">Crate responsibilities and dependencies</title>
+  <desc id="desc">The platform apps are on the left, shared application logic is in the middle, and protocol types and codecs are on the right. Arrows point from a crate to the crates it uses. Some direct dependencies are omitted.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#576d68"/></marker></defs>
+  <style>text{font-family:'Segoe UI',sans-serif;fill:#183c35;font-size:17px}.heading{font-size:21px;font-weight:650}.small{font-size:15px;fill:#526b65}.box{fill:#fff;stroke:#bdcdc5;stroke-width:1.5}.core{fill:#e0eee6;stroke:#88ad99;stroke-width:1.5}.line{fill:none;stroke:#576d68;stroke-width:2;marker-end:url(#arrow)}</style>
+  <rect width="1040" height="650" rx="12" fill="#f6f8f7"/>
+  <text x="165" y="39" text-anchor="middle" class="small">Platform apps</text>
+  <text x="520" y="39" text-anchor="middle" class="small">Shared logic</text>
+  <text x="875" y="39" text-anchor="middle" class="small">Protocol types and codecs</text>
+
+  <rect x="35" y="240" width="260" height="135" rx="10" class="box"/>
+  <text x="165" y="277" text-anchor="middle" class="heading">windows / linux / macos</text>
+  <text x="165" y="311" text-anchor="middle" class="small">Startup, UI, agent endpoints</text>
+  <text x="165" y="340" text-anchor="middle" class="small">Provide OS services</text>
+
+  <path d="M295 260H340V125H390" class="line"/>
+  <path d="M295 307H390" class="line"/>
+  <path d="M295 355H340V500H390" class="line"/>
+  <rect x="390" y="80" width="260" height="90" rx="10" class="box"/>
+  <text x="520" y="116" text-anchor="middle" class="heading">ui-core</text>
+  <text x="520" y="147" text-anchor="middle" class="small">Screen state and auth prompts</text>
+  <path d="M520 170V255" class="line"/>
+  <rect x="390" y="255" width="260" height="105" rx="10" class="core"/>
+  <text x="520" y="293" text-anchor="middle" class="heading">core</text>
+  <text x="520" y="324" text-anchor="middle" class="small">Profiles, policy, and workflows</text>
+  <path d="M520 360V455" class="line"/>
+  <rect x="390" y="455" width="260" height="90" rx="10" class="box"/>
+  <text x="520" y="491" text-anchor="middle" class="heading">fido-client</text>
+  <text x="520" y="522" text-anchor="middle" class="small">Authenticator I/O and routing</text>
+
+  <path d="M650 280H695V185H745" class="line"/>
+  <rect x="745" y="130" width="260" height="110" rx="10" class="box"/>
+  <text x="875" y="169" text-anchor="middle" class="heading">ssh-agent-protocol</text>
+  <text x="875" y="198" text-anchor="middle" class="small">Agent connections and messages</text>
+  <text x="875" y="222" text-anchor="middle" class="small">SSH public key, signature, certificate</text>
+  <path d="M650 330H695V425H745" class="line"/>
+  <path d="M650 500H720V475H745" class="line"/>
+  <rect x="745" y="400" width="260" height="110" rx="10" class="box"/>
+  <text x="875" y="439" text-anchor="middle" class="heading">fido</text>
+  <text x="875" y="468" text-anchor="middle" class="small">WebAuthn, CTAP data</text>
+  <text x="875" y="492" text-anchor="middle" class="small">Codecs and transports</text>
+
+  <text x="520" y="590" text-anchor="middle" class="small">Arrows point to dependencies. Crate names omit the keyringd- prefix.</text>
+  <text x="520" y="620" text-anchor="middle" class="small">Some direct dependencies, the WSL proxy, and test crates are omitted.</text>
+</svg>

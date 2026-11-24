@@ -1,0 +1,5 @@
+error: spec must be an HTTP(S) URL with a non-empty fragment anchor
+ --> tests/ui/spec_without_anchor.rs:5:14
+  |
+5 |         spec "https://example.com/specification"
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,119 @@
+= Security Model
+:description: The goals, design, and threat model of Keyringd.
+:toc: macro
+:toc-title: Contents
+:toclevels: 1
+:sectanchors:
+:notitle:
+
+Keyringd aims to make SSH authentication more secure than using private key files and more convenient than using security keys.
+
+To achieve this, it keeps the private key for everyday SSH authentication in the computer's hardware and uses a Passkey as an SSH certificate authority (CA) to authorize new computers. Each computer can then authenticate without its private key ever leaving the hardware.
+
+toc::[]
+
+== Goals
+
+* Prevent the private key used for everyday SSH authentication from being stolen and misused on another computer.
+* Reduce the need to connect and operate an external authenticator for everyday SSH authentication.
+* Prevent an attacker from using an everyday authentication key to authorize a new computer.
+
+== Non-goals
+
+* Identify the requesting application and allow only trusted applications to use a key.
+* Provide the server with proof of OS or application integrity, or of how keys are stored.
+
+== Design
+
+=== Protect Device Keys in hardware
+
+Each computer generates a Device Key. Its private key is protected by a TPM on Windows and Linux, or by the Secure Enclave on macOS. WSL uses the Windows Agent and key.
+
+During SSH authentication, the Agent delegates signing to the hardware. The private key is never loaded into application memory, preventing its extraction from files or memory.
+
+Local authentication can be required for each signature. This setting is disabled by default.
+
+=== Use a Passkey as an SSH CA
+
+An SSH CA lets you authorize new computers while keeping each private key in hardware. The Passkey signs an SSH certificate for the Device Key's public key, called a Device Certificate.
+
+The server trusts the Passkey's public key as a CA key and verifies both the Device Certificate and the Device Key's signature during authentication. You can authorize additional computers with the same Passkey, without copying private keys or registering each computer's key on the server.
+
+Once authorized, a computer uses its Device Key for everyday SSH authentication. The Passkey is needed only to add a computer or replace a key. This simplifies everyday authentication and keeps the ability to authorize new keys separate from the ability to use an existing key.
+
+=== Authentication without certificates
+
+Device Key and Passkey public keys can also be registered directly on the server for authentication, rather than as CA keys. In this configuration, authenticating with a Passkey requires using it each time. See link:{site-path}guides/public-key-registration/[Public key registration] for details. The rest of this document focuses on using the Passkey as a CA.
+
+== Assumptions
+
+The analysis relies on the following assumptions. This document does not cover attacks that break these underlying protections.
+
+* The cryptographic algorithms, random number generation, and cryptographic implementations are secure.
+* TPMs, Secure Enclaves, their key management infrastructure, and security keys prevent extraction of the private keys they protect.
+* The SSH client correctly verifies the server's identity, and the server correctly enforces its configured authentication requirements.
+
+== Attacker capabilities
+
+The analysis considers attackers with the following capabilities. Each threat is evaluated separately; no attacker is assumed to have all of these capabilities at once.
+
+* Steal a computer.
+* Run malware on a computer to steal accessible files, memory contents, or user input, or to request signatures.
+* Insert a malicious request into a legitimate operation and trick the user into approving it.
+* Tamper with the OS or applications to alter signing data, substitute a key during authorization, change what the user sees, or bypass authentication requirements.
+* Gain access to a Passkey. For synced Passkeys, this includes compromising a synced device, the account, or an account recovery mechanism.
+
+Local authentication relies on the OS and Keyringd to enforce it correctly. If either is tampered with, the hardware is still assumed to prevent private key extraction, but unauthorized signing or key authorization may be possible.
+
+== Threat analysis
+
+An attacker may steal a private key, misuse it on the computer that holds it, or get their own key authorized. The following analysis examines the protections and remaining risks for each approach.
+
+=== Theft and misuse of existing keys
+
+The comparison uses the following configurations:
+
+* Private key file authentication: a key file without a passphrase, loaded directly for authentication.
+* Security key authentication: a FIDO key, with the OpenSSH server enforcing its default check of the signature's UP (user presence) flag. PIN or biometric requirements depend on the configuration.
+* keyringd: a Passkey as the CA and a Device Key for everyday authentication, with local authentication disabled.
+
+Cells note where enabling a passphrase or local authentication changes the assessment.
+
+All three configurations assume disk encryption is enabled.
+
+[.threat-legend]
+[.threat-blocked]#Blocked# The attack is prevented / [.threat-exposed]#Exposed# The attack can lead to unauthorized authentication. Cell backgrounds reflect the baseline configuration.
+
+[.threat-matrix]
+[options="header",cols="3,3,3,3"]
+|===
+|Threat |Private key file authentication |Security key authentication |Keyringd
+
+|Theft of a computer in storage
+|[.threat-blocked]#Blocked# Disk encryption prevents access to the private key
+|[.threat-blocked]#Blocked# The computer alone cannot sign without the authenticator
+|[.threat-blocked]#Blocked# Disk encryption prevents access to the stored data needed to use the key
+
+|Key theft by an infostealer
+|[.threat-exposed]#Exposed# The stolen key file can be used on another computer
+|[.threat-blocked]#Blocked# Files, memory contents, and captured input do not reveal the authenticator's private key
+|[.threat-blocked]#Blocked# Files, memory contents, and captured input do not reveal the Device Key's hardware-protected private key
+
+|Malware uses a key without user interaction or approval
+|[.threat-exposed]#Exposed# The malware can load the key file and sign. +
+With a passphrase: [.threat-blocked]#Blocked#
+|[.threat-blocked]#Blocked# The server rejects signatures without UP by default
+|[.threat-exposed]#Exposed# Signing is possible without user interaction. +
+With local authentication enabled: [.threat-blocked]#Blocked#
+
+|Malware tricks the user into approving a malicious signing request during a legitimate operation
+|[.threat-exposed]#Exposed# The attacker-controlled data is signed
+|[.threat-exposed]#Exposed# A touch or user verification does not prevent signing attacker-controlled data
+|[.threat-exposed]#Exposed# The attacker-controlled data is signed
+|===
+
+=== Unauthorized approval of new keys
+
+An attacker may obtain a certificate for their own key by misusing the Passkey or substituting a public key on the computer used for authorization. Passkey user verification alone does not ensure that the intended key is authorized.
+
+Preventing this attack requires protecting that computer from malware and minimizing how often authorization is needed. Device Certificates are valid for 100 × 365 days by default, reducing the need to use the Passkey for renewals.

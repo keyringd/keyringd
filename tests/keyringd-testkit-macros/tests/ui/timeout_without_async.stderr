@@ -1,0 +1,5 @@
+error: timeout is supported only for async: tokio scenarios
+ --> tests/ui/timeout_without_async.rs:5:18
+  |
+5 |         timeout: std::time::Duration::from_secs(1);
+  |                  ^^^

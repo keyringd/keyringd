@@ -1,0 +1,62 @@
+= How it works
+:description: Understand how hardware-protected Device Keys, a passkey, and SSH certificates work together.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Keyringd keeps each computer's SSH private key in hardware. A separate passkey lets you authorize new computers without transferring those private keys.
+
+These two keys have different roles: the *Device Key* signs your everyday connections, and the *Passkey* certifies Device Keys.
+
+== Device Key: signing in hardware
+
+Each computer creates its own Device Key in its TPM 2.0 on Linux and Windows, or Secure Enclave on macOS. WSL2 uses the Windows app and its TPM through a local proxy.
+
+When an SSH client requests a signature, Keyringd asks the hardware to sign with the Device Key. The signature returns to the client; the private key stays in hardware.
+
+== Passkey: certifying Device Keys
+
+Your passkey is stored on your Android device, iPhone, or FIDO2 security key. During setup, it signs an SSH certificate for this computer's Device Key. This certificate is called the *Device Certificate*.
+
+A *Profile* groups your passkey, this computer's Device Key, and its Device Certificate in the app.
+
+== How certificate authentication works
+
+With SSH certificates, your passkey acts as a certificate authority (CA). Register its public key as a CA on your server once, rather than registering each computer's Device Key.
+
+++++
+include::_includes/certificate_authentication.html[]
+++++
+
+The certificate tells the server which Device Key your passkey has authorized. The authentication signature proves that your computer holds that key. Both are needed: copying a Device Certificate alone does not let another computer authenticate.
+
+For registration steps, see link:{site-path}guides/public-key-registration/#ca-trust[Set up CA trust].
+
+== Servers without SSH certificate support
+
+For servers that do not support SSH certificates, register the signing key's public key directly. Register the *Device Key public key* for everyday connections, or the *Passkey public key* to connect using your passkey.
+
+++++
+include::_includes/direct_authentication.html[]
+++++
+
+We recommend registering both public keys on servers that do not support SSH certificates. After replacing your computer, use your passkey for connections until you register the new Device Key. Then return to everyday connections with that Device Key.
+
+For registration steps, see link:{site-path}guides/public-key-registration/#direct-keys[Register keys directly].
+
+== When you change computers
+
+The new computer creates its own Device Key and Device Certificate. Keyringd retrieves the same passkey's public key from your authenticator without copying its private key or the old computer's Profile.
+
+What changes on your server depends on how it trusts your keys:
+
+[options="header",cols="1,2,2"]
+|===
+|Authentication method |Server trusts |After replacing your computer
+|Device Certificate |Passkey public key as a CA |No server changes; certify the new Device Key with the same passkey
+|Device Key |Device Key public key |Register the new computer's Device Key public key
+|Passkey |Passkey public key directly |No server changes; authenticate with the same passkey for each connection
+|===
+
+Adding a computer does not revoke the old computer's access. See link:{site-path}guides/adding-or-replacing-a-computer/[Adding or replacing a computer] for the steps to add, replace, or retire a computer, and link:{site-path}security-model/[Security Model] for the protection and recovery limits.

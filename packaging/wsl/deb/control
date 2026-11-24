@@ -1,0 +1,13 @@
+Package: keyringd-wsl
+Version: @PACKAGE_VERSION@
+Architecture: amd64
+Section: net
+Priority: optional
+Maintainer: Keyringd maintainers <info@keyringd.com>
+Homepage: https://github.com/keyringd/keyringd
+Depends: init-system-helpers (>= 1.61)
+Conflicts: keyringd
+Description: Passkey-backed SSH agent for Windows and WSL
+ Keyringd combines a TPM-backed SSH key with a FIDO authenticator and an
+ OpenSSH certificate. This package includes the Linux WSL proxy and its native
+ Windows companion executable.

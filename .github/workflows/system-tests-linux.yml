@@ -1,0 +1,158 @@
+name: System tests (Linux)
+
+on:
+  schedule:
+    # Monday 03:17 JST (Sunday 18:17 UTC), away from the busy hour boundary.
+    - cron: '17 18 * * 0'
+  workflow_dispatch:
+    inputs:
+      coverage:
+        description: Measure product coverage
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      coverage:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: system-tests-linux-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
+
+jobs:
+  test-ubuntu:
+    name: Ubuntu
+    env:
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/system/linux/ubuntu
+    timeout-minutes: 90
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-26.04
+      - name: Prepare Linux system test host
+        uses: ./.github/actions/linux-system-test-host
+      - name: Record disk capacity before system tests
+        run: df -h "$GITHUB_WORKSPACE" /var/tmp
+      - name: Run Linux system tests
+        id: tests
+        run: |
+          (
+            while true; do
+              date -u +'%Y-%m-%dT%H:%M:%SZ'
+              df -B1 --output=target,size,used,avail "$GITHUB_WORKSPACE" /var/tmp
+              sleep 15
+            done
+          ) &
+          disk_monitor_pid=$!
+          trap 'kill "$disk_monitor_pid" 2>/dev/null || true; wait "$disk_monitor_pid" 2>/dev/null || true' EXIT
+          cargo linux-system-test ${{ inputs.coverage && '--coverage' || '' }} --distribution ubuntu
+      - name: Record disk usage after system tests
+        if: always()
+        run: |
+          df -h "$GITHUB_WORKSPACE" /var/tmp
+          du -sh target "$HOME/.cargo" "$HOME/.cache/mkosi" 2>/dev/null || true
+          du -sh target/debug target/release target/linux-system \
+            "$HOME/.cargo/registry/cache" "$HOME/.cargo/registry/src" \
+            "$HOME/.cargo/registry/index" "$HOME/.cargo/git/db" \
+            "$HOME/.cargo/git/checkouts" 2>/dev/null || true
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: linux-ubuntu-system
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: system-ubuntu-linux
+          directory: target/coverage/system-ubuntu-linux
+
+  test-fedora:
+    name: Fedora
+    env:
+      KEYRINGD_TEST_REPORT_DIR: ${{ github.workspace }}/target/test-results/system/linux/fedora
+    timeout-minutes: 90
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools-preview
+          rustup default stable
+      - name: Restore Cargo caches
+        id: cargo-cache
+        uses: ./.github/actions/cargo-cache-restore
+        with:
+          runner-image: ubuntu-26.04
+      - name: Prepare Linux system test host
+        uses: ./.github/actions/linux-system-test-host
+      - name: Record disk capacity before system tests
+        run: df -h "$GITHUB_WORKSPACE" /var/tmp
+      - name: Run Linux system tests
+        id: tests
+        run: |
+          (
+            while true; do
+              date -u +'%Y-%m-%dT%H:%M:%SZ'
+              df -B1 --output=target,size,used,avail "$GITHUB_WORKSPACE" /var/tmp
+              sleep 15
+            done
+          ) &
+          disk_monitor_pid=$!
+          trap 'kill "$disk_monitor_pid" 2>/dev/null || true; wait "$disk_monitor_pid" 2>/dev/null || true' EXIT
+          cargo linux-system-test ${{ inputs.coverage && '--coverage' || '' }} --distribution fedora
+      - name: Record disk usage after system tests
+        if: always()
+        run: |
+          df -h "$GITHUB_WORKSPACE" /var/tmp
+          du -sh target "$HOME/.cargo" "$HOME/.cache/mkosi" 2>/dev/null || true
+          du -sh target/debug target/release target/linux-system \
+            "$HOME/.cargo/registry/cache" "$HOME/.cargo/registry/src" \
+            "$HOME/.cargo/registry/index" "$HOME/.cargo/git/db" \
+            "$HOME/.cargo/git/checkouts" 2>/dev/null || true
+      - name: Save Cargo caches
+        if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+        uses: ./.github/actions/cargo-cache-save
+        with:
+          sources-key: ${{ steps.cargo-cache.outputs.sources-key }}
+          sources-hit: ${{ steps.cargo-cache.outputs.sources-hit }}
+          sccache-key: ${{ steps.cargo-cache.outputs.sccache-key }}
+          sccache-directory: ${{ steps.cargo-cache.outputs.sccache-directory }}
+      - name: Upload test results
+        if: always()
+        uses: ./.github/actions/test-results
+        with:
+          environment: linux-fedora-system
+      - name: Upload coverage
+        if: ${{ always() && inputs.coverage }}
+        uses: ./.github/actions/coverage-results
+        with:
+          environment: system-fedora-linux
+          directory: target/coverage/system-fedora-linux

@@ -1,0 +1,31 @@
+name: Publish release
+description: Publish a numbered release from assembled assets.
+inputs:
+  tag:
+    description: Tag for the GitHub Release.
+    required: true
+  commit:
+    description: Exact commit used to build the assets.
+    required: true
+  assets:
+    description: Assembled release assets directory.
+    default: release-assets
+runs:
+  using: composite
+  steps:
+    - name: Publish release
+      shell: bash
+      env:
+        RELEASE_TAG: ${{ inputs.tag }}
+        RELEASE_COMMIT: ${{ inputs.commit }}
+        ASSETS: ${{ inputs.assets }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        test -s "$ASSETS/SHA256SUMS.txt"
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git tag -a "$RELEASE_TAG" "$RELEASE_COMMIT" -m "Release $RELEASE_TAG"
+        git push origin "refs/tags/$RELEASE_TAG"
+        gh release create "$RELEASE_TAG" "$ASSETS"/* \
+          --notes "" --title "$RELEASE_TAG" --verify-tag

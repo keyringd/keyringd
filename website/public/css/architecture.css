@@ -1,0 +1,24 @@
+.architecture-shell{display:grid;grid-template-columns:190px minmax(0,1fr);gap:56px;padding-block:52px 90px;max-width:1360px}
+.architecture-nav{position:sticky;top:28px;align-self:start;font-size:.83rem;line-height:1.55}
+.architecture-nav>a{display:block;padding:7px 0;text-decoration:none}
+.architecture-nav hr{border:0;border-top:1px solid var(--line);margin:20px 0}
+.architecture-page{min-width:0;max-width:none;line-height:1.85}
+.architecture-page h1{font-size:clamp(2rem,3.7vw,3rem);letter-spacing:-.025em;line-height:1.35}
+.architecture-page h2{font-size:clamp(1.5rem,2.3vw,2rem);letter-spacing:-.02em;line-height:1.5;border-top:1px solid var(--line);padding-top:30px;margin-top:54px}
+.architecture-page h3{font-size:1.14rem;line-height:1.5;letter-spacing:0;margin-top:28px}
+.architecture-page .preamble,.architecture-page #preamble{font-size:1.04rem;color:var(--muted)}
+.architecture-page .imageblock{margin:28px 0 18px;padding:12px;background:#f6f8f7;border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+.architecture-page .imageblock img{display:block;width:100%;height:auto;min-width:760px}
+.architecture-page .imageblock .title{font-size:.8rem;line-height:1.65;color:var(--muted);padding:10px 7px 2px}
+.architecture-page table{font-size:.86rem;line-height:1.75;table-layout:auto}
+.architecture-page td,.architecture-page th{overflow-wrap:anywhere;vertical-align:top}
+.architecture-page td p{margin:0}
+.architecture-page code{overflow-wrap:anywhere;letter-spacing:0}
+.architecture-page pre{overflow-x:auto;line-height:1.7}
+.architecture-page pre code{overflow-wrap:normal}
+.architecture-page .admonitionblock{margin-block:24px}
+.architecture-page .sect2{margin-bottom:28px}
+@media(min-width:1450px){.architecture-shell{width:calc(100% - 96px)}}
+@media(max-width:1000px){.architecture-shell{grid-template-columns:155px minmax(0,1fr);gap:26px}.architecture-page table{font-size:.8rem}}
+@media(max-width:700px){.architecture-shell{display:block;padding-top:28px}.architecture-nav{position:static;display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;padding-bottom:22px;border-bottom:1px solid var(--line);margin-bottom:30px}.architecture-nav .eyebrow{grid-column:1/-1;margin-bottom:8px}.architecture-nav hr{display:none}.architecture-nav>a{font-size:.78rem}.architecture-page .imageblock{padding:6px}.architecture-page h2{margin-top:40px}.architecture-page table{display:block;overflow-x:auto}.architecture-page td,.architecture-page th{min-width:120px}.architecture-page table code{font-size:.85em}}
+@media print{.architecture-nav,.site-header,.site-footer{display:none}.architecture-shell{display:block;width:100%;padding:0}.architecture-page .imageblock img{min-width:0}.architecture-page h2{break-after:avoid}.architecture-page .imageblock{break-inside:avoid}}

@@ -1,0 +1,430 @@
+= Architecture
+:description: A guide to Keyringd’s processes, crates, keys and data, registration, and signing.
+:layout: internal
+:page-layout: internal
+:sectanchors:
+:notitle:
+:repo: https://github.com/keyringd/keyringd/blob/master
+
+Keyringd is a desktop app that routes SSH signature requests to a hardware-backed key on this computer or to an external Passkey.
+Profile management and SSH agent requests share the same application layer.
+
+Start with the running components, then follow the crates, persisted data, and common execution paths.
+See link:/how-it-works/[How it works] for a product overview and link:/security-model/[Security model] for trust relationships.
+
+[#system]
+== 01 Inside and outside the app
+
+An SSH client such as OpenSSH connects to the server. Keyringd lists public identities and signs with the selected key.
+Users configure the server to trust their public key or CA. Keyringd signs locally without connecting to that server.
+
+.The arrows show runtime interactions. The native UI and SSH agent share the same application layer.
+image::/images/internal/architecture-system-map.svg[SSH clients, native apps, hardware, authenticators and connection destinations]
+
+The resident app assembles the platform’s agent endpoint, native UI, and key service. Tokio runs asynchronous requests and authenticator operations. The native UI handles PIN entry, QR codes, and completion notifications.
+
+The SSH agent uses a named pipe on Windows and a Unix socket on Linux and macOS. In WSL, a small proxy exposes a Unix socket and relays requests to the Windows agent. Windows owns the profiles and Device Keys.
+
+[#workspace]
+== 02 Crate responsibilities
+
+The workspace separates product logic, protocols, OS implementations, and shared UI logic. The arrows show the principal dependencies. The platform crates assemble the app and depend directly on core, UI, and protocol crates.
+
+.The platform apps and FIDO backends contain the OS-specific dependencies.
+image::/images/internal/architecture-crate-map.svg[User Relationships of OS Apps, Shared UI, Core, FIDO Client, FIDO Data Types, and SSH Agent Protocols]
+
+[cols="1,2,2",options="header"]
+|===
+|Crate |Responsibility |Entry points
+|``keyringd-core``
+|Profile model, registration, key management, signing, and decisions about SSH agent requests
+|``KeyringdApplication``, ``KeyringdAgentRequestHandler``
+|``keyringd-ui-core``
+| Screen state transitions, display data, authentication operations and prompt adjustments
+|``ComponentModel``, ``ComponentRuntime``, ``KeyOperationCoordinator``
+|``keyringd-ssh-agent-protocol``
+|Agent connections and message I/O, plus SSH key, certificate, and signature types
+|``SshAgent``, ``SshAgentListener``, ``SshAgentRequestHandler``
+|``keyringd-fido``
+| WebAuthn, CTAP, USB/Hybrid protocol data and codec
+|``webauthn``, ``ctap``, ``transport``
+|``keyringd-fido-client``
+|Registration and assertion retrieval, transport selection, PIN/UV, communication, and operation management
+|``FidoClient``, ``InternalAuthenticator``, ``FidoInteractionHandler``
+|``keyringd-windows`` / ``-linux`` / ``-macos``
+|Startup, native UI, OS key storage, agent endpoints, and service integration
+|Each OS crate’s ``main.rs``, ``app``, and ``system``
+|``keyringd-wsl``
+|Relay between the WSL socket and the Windows process’s standard input and output
+|``WslEntryPoint``, ``WindowsBridgeRelay``
+|===
+
+Each OS crate keeps its Unix socket listener in ``system/socket``. Linux and WSL support systemd socket activation; macOS owns its listener and keeps Configure / Unconfigure in ``system/open_ssh``.
+
+Within ``core``, ``model`` defines profile and key data and their invariants. ``application`` exposes operations and owns shared state. The private ``execution`` module implements operation workflows, and ``signing`` converts signatures to the required format. ``service`` and ``persistence`` define the interfaces to external implementations.
+
+For example, ``DeviceKeyService`` exposes key generation, signing, and deletion. The OS implementation chooses how to implement these operations using CNG, TPM, or Secure Enclave. Core chooses the profile key and decides when to issue a certificate.
+
+[#identities]
+== 03 Keys and trust
+
+A ``Profile`` links an ID, display name, and enabled state to one ``Passkey`` and one ``DeviceKey``.
+The app holds the information needed to use the Passkey credential. Its private key stays on the authenticator.
+
+[cols="1,2,2",options="header"]
+|===
+|Data |What the app stores |Location and role of the private key
+|``Passkey``
+| Credential ID, User Handle, Public Key, SSH Signature Format
+|On the authenticator. Signs Device Key certificates and direct Passkey requests.
+|``DeviceKey``
+|Private-key handle, certificate, local authentication settings, persistence, and SSH signature format
+|In the OS key service. Signs ordinary SSH requests.
+|Device Certificate
+|An SSH user certificate containing the Device Key public key and signed by the Passkey
+|No private key. The certificate links the Passkey’s trust to this computer’s Device Key.
+|===
+
+The OS implementation interprets the ``DevicePrivateKeyHandle``. It may store a TPM-protected blob or a reference to an OS-managed key. Core treats the handle as opaque.
+``DeviceKey`` reads its public key from its certificate.
+
+.The three SSH identities and the keys behind them. The Passkey signs a certificate for the Device Key public key.
+image::/images/internal/architecture-identities.svg[A relationship where Passkey and Device Key are tied to Profile and provide 3 types of SSH Identity]
+
+From one Profile, the Agent can present up to three different types of Identity.
+
+* *Device Certificate* — The server trusts the public key of Passkey as a CA and the signature upon connection is done by Device Key.
+* *Device Key* — The server trusts this computer’s public key directly. The Device Key signs the request.
+* *Passkey* — The server trusts the public key of Passkey directly and uses the authenticator every time it is signed.
+
+The Device Certificate and raw Device Key identities share the Device Key. The agent lists identities by type for enabled profiles and offers certificates only when they meet the applicable validity checks.
+
+``ProfileSshIdentity`` contains the selected identity type, public key or certificate blob, and comment. It lists available types, formats public keys, and converts an identity to the SSH agent protocol’s ``SshAgentIdentity``. ``Profile`` stores, validates, and updates profile data. Types in ``ssh_trust`` generate server trust entries.
+
+The location of the key and the SSH signature format are also different axes. Unified to the ``SshSignatureAlgorithm`` of Protocol Crate, the Device Key usually deals with ECDSA, SK-ECDSA, WebAuthn, and Passkey deals with the latter two types. During build/restore, Device Key validates the correspondence with the certificate body and rejects unsupported algorithms on both. ``signing/ssh`` chooses how to generate Client Data according to the signature format and assembles the SSH signature from Assertion. ``signing/fido`` has the Authenticator implementation of the Provider and Device Key that mediate its acquisition. ``keyringd-fido-client`` is in charge of preparing and verifying the CTAP request on the Client side.
+
+[#journeys]
+== 04 Execution paths
+
+=== Process from Application to Execution
+
+``KeyringdApplication`` exposes operations and owns state shared by the UI and SSH agent. It delegates each workflow to a private execution type. Executions call services and signers and use a ``ProfileStore`` transaction when they change profiles.
+
+.The arrows follow calls into each execution and the services it uses. The management execution illustrates a typical case.
+image::/images/internal/architecture-execution-map.svg[UI and SSH Agents to KeyringDApplication, Operations by Operation, Signing Processing and Calling Relationships to Service-Save-Save Boundaries]
+
+``application`` is in charge of operational entry, ``execution`` is the procedure, ``signing`` is responsible for the signature-style assembly. Commands for registration, progress notifications, candidate selections, and failure types are contracts published by ``application``. Each Execution receives a service or ProfileStore on ``new`` and receives operational inputs and runtime contexts on ``execute``. The implementations of ``DeviceKeyService``, ``PasskeyService`` and ``OpenSshService`` are passed during assembly. ``ProfileStore`` manages the state of the app and saves it to ``ProfileRepository``. Each column in the figure is an independent call path and does not proceed in order to the next execution.
+
+=== Launch: Combine OS implementations
+
+Each OS entry point configures its endpoint and logging, creates the async runtime, key service, FIDO client, and authentication UI, and assembles a ``KeyringdApplication``.
+The application reads the profile in ``ProfileRepository::load`` and then shares it from the UI and the Agent.
+
+Handler on the OS side passes Listener and ``KeyringdAgentRequestHandler`` to ``SshAgent``. ``SshAgent`` accepts connections, and the ``SshAgentConnection`` of each connection interprets the protocol and calls the common handler. The implementation of the communication mouth and the decision to allow the request are divided here. Since the received frame fragments are retained by the ``SshAgentRequestReader`` in the connection, it will not be lost even if the response is completed first and the waiting reception is interrupted.
+
+=== Registration: Create a Device Key certificate from Passkey
+
+The screen sums up the input to ``ProfileSetupRequest`` and calls ``ProfileSetupSession::setup_profile``. The ``SetupProfileExecution``, which is responsible for execution, proceeds with the following order.
+
+. *Confirm the Passkey.* Register a credential when creating a Passkey. For an existing Passkey, retrieve an assertion, select a candidate if needed, and recover its public key.
+. *Generate a Device Key.* Ask ``DeviceKeyService`` to create an ECDSA P-256 key and return its public key and handle.
+. *Issue the certificate.* Build an SSH user certificate body with the Device Key public key and a principal derived from the Passkey. The Passkey signs the certificate as the CA.
+. *Save the profile.* Build a complete profile from the Passkey and certified Device Key, then publish the shared state after saving.
+
+The values during registration are ``ProfileDraft``, ``PasskeyReadyProfileDraft``, and ``DeviceKeyReadyProfileDraft``. It becomes a Profile after all the required keys and certificates are available.
+If the certificate issuing or saving fails after generating the Device Key, try to delete the unregistered Device Key. If the deletion also fails, leave a warning log in the context of execution and return the reason for the failure of the operation to ``ProfileSetupFailure``.
+
+The progress is ``ProfileSetupProgressReporter``, and multiple credential selections are returned to the screen through ``PasskeyCredentialSelector``. It is not structured in which the Core opens a specific dialog directly.
+
+The WebAuthn largeBlob input has optional `support`, `read`, and `write` members. It validates the rules for registration and authentication, and callers inspect the individual members. An empty input means preferred support at registration and no operation at authentication. `read: false` also requests no operation. The CTAP representation distinguishes unsupported, `largeBlob`, and `largeBlobKey` modes. The client skips invalid entries when reading the shared array and leaves them out when writing it.
+
+If available, largeBlob can make recovery shorter. On registration, Keyringd saves the ``PasskeyAttestationResponse`` (attestation object and ClientDataJSON) in the profile JSON’s `attestationResponse` field. The authentication operation that signs the Device Certificate also writes the response to the credential’s large blob. On recovery, Keyringd reads the blob with the first assertion and skips the extra public-key recovery assertion if it can verify the first assertion using the stored registration response. If the blob is unavailable, recovery uses two assertions. The assertion signature does not cover the largeBlob output, and the registration’s UP and UV flags do not count as authentication for the current operation.
+
+=== Signature: Select Identity and ask the corresponding key
+
+The SSH client first enumerates the Identity and specifies the Identity to use and the data to be signed. ``KeyringdAgentRequestHandler`` selects the Profile corresponding to the requested Identity and passes the ``ProfileId`` and ``SshAgentSignRequest`` to the application. Signature Execution gets the current profile and checks the validity, the requested public key, and the public key in the SSH authentication data before signing. Passkey signing gets the Profile after waiting for the FIDO service.
+
+.The identity selects the execution, and the profile’s signature format selects the signer. The arrows show calls. Signatures return along the same paths.
+image::/images/internal/architecture-signing-paths.svg[A diagram that includes the ECDSA and FIDO formats of the Device Key, and the signature routes of Passkey to Execution and Signer.]
+
+Signature Execution rejects unsupported Flags or uninterpreted signatures. Accepted signatures are SSH User Authentication and SSHSIG. User authentication also checks whether the public key in the signed is the allowed identity with that signature key. Do not sign with invalid profiles or unmatched keys.
+
+``SignWithDeviceKeyExecution`` is the route for the device key, and ``SignWithPasskeyExecution`` is responsible for the passkey route. Even with a connection using a certificate, you don't recreate the certificate with Passkey for each connection, but use the already saved certificate and Device Key.
+
+In normal ECDSA format, ``EcdsaSshSigner`` passes the signed SHA-256 to ``DeviceKeyService``. In Security Key/WebAuthn format, ``SkEcdsaSshSigner`` or ``WebAuthnSkEcdsaSshSigner`` requests an assertion to ``FidoAssertionProvider``.
+
+* *Device Key* — ``DeviceKeyAssertionProvider`` connects a ``DeviceKeyFidoAuthenticator`` for the selected key to ``FidoClient``. The ``client-device`` hint selects the internal transport, which signs through the OS key service.
+* *Passkey* — ``PasskeyAssertionProvider`` supplies the credential and requirements to ``PasskeyService`` and ``FidoClient``. The request runs on a USB or Hybrid authenticator.
+
+Both return the library's ``GetAssertionResult`` to the SSH SIGNER. The results hold the CTAP response and the Client Data used. Signer interprets the ECDSA signature in DER format and converts it to the SSH signature format together with the Authenticator Data Flags Counter. The difference between the CLIENT and Authenticator boundaries, and the difference between the UP request and the authentication result is described in 06.
+
+For native apps, the common Handler is wrapped in ``InteractiveAgentRequestHandler`` and the ``ActionId`` and shipping destinations are provided for the signature request. Execution has its own ``ExecutionId``. If the worker who handles the signature request owns the Action and the SSH connection expires, it will notify you of the cancellation and wait for the authentication process and the screen to finish. Identity enumerations and extension requests do not initiate this signature interaction management.
+
+=== Administrative Operations: Update Profile and OS Keys
+
+You can also change the name, sort order, and status, change the profile, replace the device key, and change protection with local authentication from the application's API.
+``execution/profile_management`` is responsible for updating profiles and ``execution/key_management`` with key service operations. If you want to replace Device Key, passkey will also issue a certificate corresponding to the new key.
+
+=== Connection Test: Run OpenSSH with the selected public key
+
+The ``test_ssh_connection`` API runs ``TestSshConnectionExecution``. Execution gets the latest Profile, checks the valid status and availability of the selected Identity, and then asks ``OpenSshService`` to test the connection. Each OS implementation launches OpenSSH, and Execution assembles the report from the Profile/Identity and Results used. On Linux and macOS, after the OS side checks the Agent settings, the common ``SshConnectionTest`` selects the public key of Identity in a temporary file and passes it to ``-i`` of OpenSSH. Disable connection multiplexing and check the success of Identity acceptance and public key authentication in the log. Connect the lifespan of temporary files and the child process to connection tests, and manage the deadlines for pre-checking/authentication executions and the termination when canceled.
+
+The connection test's temporary public key file, ssh argument, expiration, and authentication result are shared with the core ``SshConnectionTest`` on the 3 OS. Each OS is in charge of checking the Agent settings and launching the process.
+
+In the connection test screen, ``SshConnectionTestCommandHandler`` is in charge of asynchronous execution of tests, display of results screens, copying registration Entry, and closing the screen. Window converts the input to Event, draws a common state, and passes the returned command to the handler. A common ``SshConnectionTestState`` determines which input limits are running and the suppression of double executions.
+
+[#gui]
+== 05 GUI structure and flow
+
+=== Share screen behavior and draw by OS
+
+The GUI is a native implementation of each OS. Windows is Win32 and ``windows_reactor``, Linux is GTK 4 / Libadwaita, and macOS uses AppKit windows and parts. What is common is not the widget itself, but the state transition when receiving the input, the information required for display, and the processing to be executed next. These are placed in ``keyringd-ui-core``.
+
+A common screen model is not one huge state. Profile list, registration, deletion confirmation, key protection changes, connection tests, etc. have their respective status and event/command. There is also a screen that supports the ``app/ui`` on the OS side, and handles the relationship between parts generation, placement, focus, and parent-child window while using the common model.
+
+The link:{repo}/keyringd-ui-core/src/text.rs[``text``] module holds fixed UI strings. Each component selects the right text for its state and authentication purpose and supplies values such as the name or remaining attempts.
+
+[cols="1,2,2",options="header"]
+|===
+|Element |Role |Examples
+|State / ``ComponentModel``
+| Hold current input/progress and decide next state and command from Event
+|``ProfilesWindowState``, ``ProfileSetupWindowState``
+|Event
+| Represents user input and external results
+| Rename request, change notification for profile, process complete
+|Command
+| After the status update, it represents the process that the host on the screen performs.
+| Update profile, open a new window, show toast
+| View/Command Handler on the OS side
+| Draw a model and run Command
+|Each OS’s ``ProfilesWindow`` and ``ProfilesWindowCommandHandler``
+|===
+
+``ComponentModel::update`` is synchronous. It updates the state and returns an ``Option<Command>``. A command describes work for the host to perform. For example, a list model can request a save, and the host writes the file.
+
+On all three OSes, the command handler runs ``Remove`` and ``Close`` for the removal window, and ``Replace``, ``OpenTrustEntriesAndClose``, and ``Close`` for the key replacement window. The removal handler completes removal and notifies the list even if the window closes. The replacement handler starts, routes, and cleans up the authentication interaction and opens the trust entries window. The window converts input to events, updates and renders state, and passes returned commands to the handler.
+
+You can also use this division for registration, key protection change, SSH client settings, Entry screen, and QR screen. The command handler will be responsible for the decision to open the confirmation/retry dialog, start the response, the notification, and the end of the screen. The Toast that arrives in the list also passes through the state as an event, and the Handler is displayed. Parts that return the input results to the parent, such as PIN input, are assigned the same division on 3 OS, and the parent's authentication handler handles the response.
+
+In Windows key exchange and protection changes, the CommandHandler on each screen creates a ``CngOperationContext`` from the parent window and calls Application. ``Action::run`` manages the scope and life of the operation, and ``AuthenticationPromptCommandHandler::receive_events`` deals with receiving the Authentication Event, updating the state, executing commands, and ending the prompt at the end of the reception. State and view states for authentication are created for each call and not shared with another Action.
+
+``KeyringdApplication`` does not retain the operational context of the Device Key and receives it from the caller for each key operation method. In Windows SSH signatures, ``KeyringdAgentRequestHandler`` holds the authentication window ``CngOperationContext`` and passes it to application at the time of signature. The operating context for Linux and macOS is ``()``.
+
+In profile registration, ``ProfileSetupProgressReporter`` is responsible for a non-returnable progress notification, and ``PasskeyCredentialSelector`` is responsible for asynchronous candidate selection. Cancel is communicated with the separate argument ``CancellationToken``. Do not discard the processing during key generation, delete unsaved keys, and then exit. Treat it as a success after saving the Profile.
+
+For Linux key exchange and protection changes, ``AuthenticationPromptCommandHandler::run_action`` connects Applications asynchronous processing and authentication EVENT reception. Wait for backend notifications, screen input, completion notifications, and handle parent window discards and cancellations. Even after the cancellation, we accept notifications required to end the prompt, close the authentication screen, and then return the operation result to the caller.
+
+On Linux and macOS, ``ComponentRuntime`` can help keep the model and EVENT's dispatch, and ``dispatch_and_render`` can call for post-state updates. Windows uses the ``windows_reactor`` model update and the ``reduce`` helper on the OS side. Not all OSs have the same screen runtime configuration, they share the ``ComponentModel`` state transitions.
+
+.Round-trip between screen input and asynchronous processing. The model is updated and drawn on the UI side, and the processing results are received again as Event.
+image::/images/internal/architecture-gui-flow.svg[A diagram in which the event and command cycles between the native screen, the common screen model, Command Handler, and Application.]
+
+=== Example: Rename Profile
+
+. The input field and save button will generate a native notification, and the OS will convert it to ``ProfilesWindowEvent``.
+. ``ProfilesWindowState`` checks the input, moves to the state of being saved, and returns a command called ``UpdateProfiles(ProfileMutationRequest)``. From this state, the drawing side decides whether the operation parts are valid or invalid.
+. The command handler on the OS side executes the request. Since the shared ``ProfileMutationRequest::execute`` calls the Application Synchronization API on ``spawn_blocking``, file storage does not occupy the UI thread.
+. Once completed, ``MutationFinished`` will return to the screen and solve the state being saved. If it fails, it will leave an input and display the error. The old completion notification does not treat the other request as completed because it matches the request ID.
+
+While saving, the model itself does not accept additional or Profile operations, so it reduces double transmission. On the other hand, the latest data in Profile is imported from Application Change Notification. Notifications of completion of saving and notification of change of shared data are different roles. The list hosts on the OS side reflect the latest Snapshot of Application even upon completion, and are less dependent on the order of arrival of notifications.
+
+The profile list on the screen is Snapshot for display. The name being edited or the state being saved is in the GUI, and the profilestore of the saved Profile has the original copy of the profile. Even if registrations or key exchanges are performed in a separate window, it can be reflected in the list through ``subscribe_profile_changes``.
+
+=== Registration screen: Summarize the interaction between the form and the authenticator
+
+In addition to entering a name, registration includes selecting Credential candidates, PIN input, QR codes, waiting for touching, canceling, and completing a display. The common status, input Event, authentication display, and Session are summarized in link:{repo}/keyringd-ui-core/src/profile_setup_window[``profile_setup_window``], and each OS form and authentication display parts are placed in each ``app/ui``. The roles are divided as follows.
+
+* ``ProfileSetupWindowState`` has the registration screen input, progress, authentication display, completion and window termination decision. Place the required values for each state of ``Editing / Running / Completed`` and distinguish the indication with ``ProfileSetupPrompt``. The PIN display contains the answer destination ID, and the QR display contains the operation ID, and the old authentication input will not be accepted by selecting a CREDENTIAL candidate or transition to a waiting list.
+* ``ProfileSetupSession`` manages the ongoing registration interactions and cancellations. It keeps the PIN response destination and the selection response at restoration, and shares an Application call and the Event transformation of the progress/candidate selection. The role is different from the registration procedure that the ``SetupProfileExecution`` of Core is responsible for.
+* ``ProfileSetupWindowCommandHandler`` on the OS side calls ``ProfileSetupSession::setup_profile`` to start registration, respond to operations, output failures, exit the screen, and so on. Using ``ProfileSetupInteractionPresentation`` directly generated from ``ProfileSetupWindowState``, it is reflected on OS-specific components.
+
+Buttons and input parts send ``ProfileSetupEvent`` and are processed as ``ProfileSetupWindowEvent`` with progress and authentication notifications from Session. The registration request, ``ProfileSetupRequest``, is generated by ``ProfileSetupWindowState`` and passed through ``ProfileSetupWindowCommand::Start`` to Application.
+
+For example, if you get a close operation during execution, the model will request a cancellation and remember that the process has calmed down before closing. This is because the progress and final results from the Core and the on-screen intentions need to be handled separately.
+
+=== Certifications starting with SSH also reach the GUI
+
+Interacting with the authenticator is required not only for screen operations but also for SSH requests. ``KeyOperationCoordinator`` coordinates the flow of key operations and FIDO operations, and connects the selection of authenticators, PIN, QR code, cancellation, etc. to the UI. 3 The OS common ``InteractivePasskeyService`` incorporates the FIDO Client into the app's operation. Prioritize canceling and wait for the current attempt to end when switching from Hybrid to USB. If the USB has canceled the OS authentication screen, return it to Hybrid. Windows USB operations go through the WebAuthn backend that is configured on the OS side.
+
+The FIDO Client's interactive requests are converted to ``KeyOperationEvent``, and ``KeyOperationState`` converts them to Command for display and response. Operations that start with the registration screen are connected to the screen, and the authentication operation is connected to the prompt on the OS side. The PIN value is returned to a waiting request on the OneShot Channel, and the QR code has a path to confirm the view/end.
+
+Operations and interactions are distinguished by the following four IDs:
+
+[cols="1,2,2",options="header"]
+|===
+|ID |Identifies |Association
+|``ActionId``
+| A series of actions that start with UI-initiated operations and SSH signature requests
+| The UI manages the destination and cancellation status of the dialog with this ID
+|``ExecutionId``
+| Individual processing performed in the Core
+|Assigned when the execution starts and linked to the originating ``ActionId``
+|``OperationId``
+| Individual FIDO Requests
+|The UI’s ``FidoOperationRegistry`` maps it to its ``ActionId``. Logs inherit the originating execution’s span.
+|``InteractionId``
+| Response requests such as individual PIN inputs and QR checks
+|Contains the originating ``OperationId`` and the sequence number within that operation
+|===
+
+``ActionId::scope`` is a window that takes over a series of operations to asynchronous and blocking operations. Individual executions are generated within the application and record the action at that time to its own ID. The runtime log and the ``ExecutionId`` scope are set by a common ``ExecutionScope``. There is no need to create a concrete execution first and pass it to the UI.
+
+Each Execution always belongs to Action. For direct calls without a starting action, the new action is generated as a starting point.
+
+The ``ActionRegistry`` in the UI has ``ActionId`` as the key to the shipping destination, type of operation, cancel status, and number of times the QR is displayed. Registration will be sent to the starting screen, and the SSH signature will be delivered to an independent authentication prompt. Even if more than one execution belongs to a single Action, the UI shipping destination remains the same.
+
+Upon registration, the ``Action`` that owns the registration will be returned. The starting source is ``take_events``, and the ``Action`` itself is passed to the task to perform the actual processing. ``Action::run`` performs processing and cleanup on Action's Scope and discards the owner upon completion. Since ``Drop`` provides cancellation notices and unsubscribes, the life of the registration will follow the task even in the middle of errors and the interruption of tasks. The same owner is used for SSH requests, and locks that serialize the request are released together with registration.
+
+The FIDO Client's ``BackendFinished`` notifies the authenticator's processing and the completion of the cleanup. The end of the authentication UI is explicitly initiated by the caller at ``dismiss_fido_ui``, and after the QR ends, it sends the ``PromptDismissalRequested`` to the UI and cancels the destination of the request. If Hybrid is not available and waits for a USB selection, keep the UI until the selection is done. Action's interaction management continues during this time. After finishing each request, such as checking to close the QR, proceed to the subsequent processing. Once the entire operation has been done and cleaned up, the management state is released by discarding the ``Action`` you own. The host on the screen receives the final result and reflects it on the display. Check the Action and Interaction IDs to avoid applying the late input from the previous screen to the next request.
+
+``FidoOperationContext`` holds the current ``OperationId`` shared by a series of FIDO attempts, the ``ExecutionId`` from which it is requested, and the cancellation information. Wait for the end of the UI for each trial and then move on to the next attempt.
+
+``AuthenticatorPromptPurpose`` indicates what purpose the QR/PIN/Security Key authentication screen corresponds to, such as registration, restoration, and signature. It can be used to determine whether you can switch to the screen description or the security key.
+The ``AuthenticatorPromptKind`` represents the type of information such as selecting the authenticator, approval by touch, and identity verification inside the authentication device. Combined with the purpose of authentication, decide what to encourage the user.
+
+=== Thread delivery and screen life
+
+``UiEventTarget`` is a typed callback in the UI thread. When you call it, the handler will be executed on the spot. ``UiEventSender`` is a window that can be notified from another thread, and the host will provide a method for actually delivering to the UI thread. Just having a Sender doesn't mean you can touch native parts from another thread.
+
+[cols="1,2",options="header"]
+|===
+|OS |Delivery to the UI thread
+|Windows
+|``UiEventSink`` uses ``UiMarshaller`` to dispatch to the registered handler on the UI thread. The handler is removed when the screen unmounts.
+|Linux
+|GTK receives events with ``MainContext::spawn_local``, updates the model, and renders the view.
+|macOS
+|The event channel dispatches to the main queue. ``MainThreadBound`` and ``MainThreadMarker`` govern access to AppKit objects.
+|===
+
+The lifespan of the window and the operation is not the same. For example, a started list save will run until it's done when the window is closed. On the other hand, the authentication operation sends a cancellation request to the waiting process and terminates the remaining prompts and waiting for a response. When you change your screen, you should also check the appearance and the life of the resulting shipping destination and the running operation as well.
+
+If you want to read the GUI, first follow the one-screen Event/Command with link:{repo}/keyringd-ui-core/src/profiles_window/profiles_window_state.rs[``ProfilesWindowState``], then draw and Command on the ``app/ui/profiles_window`` for each OS. You can grasp this division by looking at the execution of Entrance is link:{repo}/keyringd-ui-core/src/profile_setup_window/profile_setup_window_state.rs[``ProfileSetupWindowState``] and link:{repo}/keyringd-ui-core/src/key_operation/key_operation_coordinator.rs[``KeyOperationCoordinator``] is the entrance for authentication dialogue.
+
+=== Log: Take over the context of operations and interactions
+
+``tracing`` spans carry operation context. An ``action`` span has an ``act_id``. An ``exec`` span has an ``exec_id`` and its originating ``act_id``. The child ``fido`` span has an ``op_id``, and the ``interaction`` span has an ``ix_id`` such as ``31:2``, which pairs the operation ID with the interaction’s sequence number.
+
+[source,text]
+----
+WARN exec{exec_id=42 act_id=7 kind=setup_profile}:fido{op_id=31}:interaction{ix_id=31:2}: ...
+----
+
+Execution's scope and FIDO requests apply SPAN to Future and pass the starting span to the blocking process. The Registry on the UI side also holds SPAN, and when dealing with a PIN or QR in another thread, it re-links it to the original Execution/Operation/Interaction. The ID is used only to identify the processing, and does not include PIN values or signed data in the span field.
+
+Logs stay in text format. On all three OSes, enable the ``keyringd_context`` target to preserve IDs even when ordinary logs are filtered to WARN or higher.
+
+[#integration]
+== 06 Authenticators and OS integration
+
+=== Share of Client/Provider/Authenticator
+
+``FidoClient`` is the operating entrance of ``keyringd-fido-client``. ``make_credential`` receives registration options and ``MakeCredentialContext``, and ``get_assertions`` receives authentication options and ``GetAssertionsContext``. Generate and hold Client Data once, and manage CTAP request preparation, response verification, operation ID, expiration date, and cancellation.
+
+[cols="1,3",options="header"]
+|===
+|Component |Responsibility
+|Core’s ``FidoAssertionProvider``
+| The connection where the SSH Signer for SSH gets the Assertion. There are implementations for Device Key and for External Passkey, which connects Profile and SSH usage conditions to the Client.
+|``FidoClient``
+| Select routes, prepare client data and CTAP requests, validate responses, and manage operation life
+|``InternalAuthenticator``
+| An implementation contract connecting to an internal route. Receives CTAP MakeCredential/GetAssertion request and returns each CTAP response
+|Core’s ``DeviceKeyFidoAuthenticator``
+| Integrated Authenticator running CTAP GetAssertion using existing Device Key
+|``DeviceKeyService``
+|Generate, change protection for, sign with, and delete OS keys. Each OS implements this with facilities such as TPM or Secure Enclave.
+|===
+
+The Provider and Authenticator of ``signing/fido`` belong to Core. Adjust the client and communication path to ``-fido-client``, and the request/response type of CTAP WebAuthn is set to ``-fido``.
+
+=== Select USB, Hybrid, Internal
+
+Set the connection destination to be used with ``with_usb_backend``, ``with_hybrid_connector``, and ``with_internal_authenticator`` when creating a Client. The HINT at the time of operation corresponds to the route as follows. If you have unspecified or multiple HINTs, ask the interactive handler to choose.
+
+[cols="1,1,3",options="header"]
+|===
+|Hint |Transport |Backend
+|``security-key`` |USB | CTAP with HID, or WebAuthn API for OS
+|``hybrid`` |Hybrid | BLE Advertisement Detection and External Authenticator Connected by Encryption Tunnel
+|``client-device`` |Internal |The configured ``InternalAuthenticator``, which uses a Device Key in Keyringd.
+|===
+
+``InternalAuthenticator`` is a TRAIT dedicated to Internal routes. USB/HYBRID handles searches, selections, and requests at the executable of each route. Not all paths are structures that implement this TRAIT. The USB device ID is specified in the context of each operation, and simultaneous designation with the Internal route is refused.
+
+Registration, restore of external Passkey, and RP, UV, Timeout, and Hints shared by SSH signatures are assembled with Core's ``passkey_assertion_options``. ``PasskeyAssertionProvider`` transfers the received options without changing it. Core's ``FidoOperationTarget`` takes over the route and the USB device ID between the operating procedures, and the Client does not remember the previous selection. The target is not selected, USB (device ID is optional), HYBRID enum, and derives the request's HINTS. Refusal to select routes or responses that change known USB device IDs, and Hybrid takes over only the route.
+
+=== Using Device Key as the Authenticator
+
+``DeviceKeyFidoAuthenticator`` is created by connecting to one ``DeviceKey``, RP ID, screen display name, and OS operation context. The SHA-256 of the public key blob is the Credential ID, and the ``DeviceKeyAssertionProvider`` complements the RP and Credential to the request. The OS key handles and operational contexts are not included in the CTAP request.
+
+This Authenticator signs only if the RP ID and the Credential ID in the AllowList match. It's non-discoverable because it doesn't support Credential exploration without ALLOWLIST. Use the ClientDataHash included in CTAP's ``AuthenticatorGetAssertionRequest`` to build the Authenticator Data and the signature, and return the ES256 ES256 signature in DER format in ``AuthenticatorGetAssertionResponse``. Rejects ClientPin and Extensions as unsupported.
+
+``InternalAuthenticator`` also has ``make_credential``, but this Device Key implementation returns the ``InvalidCommand`` of CTAP. Keyringd Device Key generation is requested to ``DeviceKeyService`` for the registration/key management procedure of Profile.
+
+=== UP request and actual authentication results
+
+Both contexts have a Client Data Provider and any USB device ID. Registration is mandatory and only the ``GetAssertionsContext`` for authentication has this UP request. UV requests are specified in WebAuthn Options. UP will be requested by default, and the SSH signature of the DEVICE key specifies ``with_user_presence(false)`` to false the tap request ``up``. This specification applies only to one operation and does not remain as a Client setting.
+
+The ``up=false`` request does not specify the UP flag to return. ``DeviceKeyService::sign`` passes the local authentication conditions of the keys that are actually opened to the digest generation callback and authenticates and signs with the same key. ``DeviceKeyFidoAuthenticator`` builds UP/UV from the results. A protected key performs local authentication without a UP request and does not return a successful response if the requested UP/UV cannot be met. The signature counter for this built-in Authenticator is 0.
+
+Normal ECDSA signature uses the same OS signature API, but does not create Authenticator Data. The SSH signer interprets the DER-style ECDSA signature at the stage of converting the signature bytes received from the Client to SSH format.
+
+[cols="1,2,2,2",options="header"]
+|===
+|OS |Device Key | Route to USB Authenticator| Native UI
+|Windows | CNG Platform Provider / TPM|Windows WebAuthn API | Win32, Windows UI library
+|Linux |tss-esapi / TPM 2.0 |hidapi / CTAP | GTK 4, Libadwaita
+|macOS |Security framework / Secure Enclave |hidapi / CTAP |AppKit
+|===
+
+This is the normal build configuration. The test backend is selected separately from Cargo's ``test-support`` Feature.
+
+=== WSL byte relay
+
+WSL's ``WslProxyHandler`` accepts UNIX Sockets and starts the ``keyringd.exe bridge`` of Windows for each connection. ``WindowsBridgeRelay`` connects Socket and the standard I/O of the child process, and the ``StdioHandler`` of Windows transfers to the Named Pipe.
+The interpretation of the Profile and the decision to sign is ultimately done with the Windows resident app.
+
+[#state]
+== 07 State and persistence
+
+The shared state of the profile is owned by ``ProfileStore``. Readers get Snapshot and UI can subscribe to change notifications on ``subscribe_profile_changes``.
+The save format is ``ProfilesDocument``, which is JSON with an array of Schema version and profile. Profile itself verifies the values using common rules for generating, renaming, and loading, and Document validates integrity with schema and id duplication when read and write. The application side removes the front and rear blanks of user input and validates the saved name without correcting it.
+
+Add, delete, and sort the operation API of ``ProfileUpdateTransaction``, and do not directly modify the internal VEC from the execution. In the update, ``ProfileUpdateTransaction`` has a working copy and replaces the shared state of the Watch Channel after successful ``ProfileRepository::save``. Failures before file replacement leave the shared state unchanged; failures after replacement publish the replaced state and report the durability error. `FileProfileRepository` in `keyringd-core` validates and encodes the document. The injected OS-specific `AtomicFileStorage` handles private file permissions, temporary files, atomic replacement, and synchronization.
+
+[cols="1,2,2",options="header"]
+|===
+|Lifetime |State |Owner
+| App is running| Sequence of Profile Snapshot and updates, waiting for an external Passkey operation|``ProfileStore``, ``SerializedPasskeyService``
+| During one operation| Draft, FIDO operation ID, deadline, selection results, screen progress| Execution, FIDO Client, UI operational model
+| Rebooting| Profile, Credential Identification, Device Key Handle and Certificate| FileProfileRepository in core, OS-specific AtomicFileStorage and key services
+|===
+
+The update lock for the Profile and the waiting for an external Passkey operation are separate. ``ProfileStore`` serializes shared state updates. ``SerializedPasskeyService`` uses the ``PasskeyService`` for external Passkey that Application has in order. Execution does not handle locks or guards, but passes the authentication process to the service. In registration, you can interrupt the waiting line with ``run_with_cancellable_wait``. Initiated processing waits for backend cancellation and the end of the authentication UI. It does not occupy the FIDO service while selecting a restore candidate.
+
+On the other hand, the library ``OperationManager`` refuses the same ``FidoClient`` concurrent execution with ``Busy``. This isn't a wait queue, it's not the whole app exclusive. In the Internal Route of Device Key, create a Client/Authenticator with a key and context for each signature operation, and wait for a turn for an external Passkey. It also notifies Authenticator about the expired/cancellation of the internal route, and releases the operation after the native processing and the UI ends.
+
+For key exchange/protection changes, get the update lock for Profile first. Each Execution orders key services and saves, and adjusts the deletion of keys on failure. It is not possible to rewind to external key generation or deletion just by saving the file.
+
+[#reading]
+== 08 Code entry points
+
+Follow these source links in order to trace the main dependencies and responsibilities.
+
+. Review the workspace in link:{repo}/Cargo.toml[``Cargo.toml``], then follow the entry point in your OS crate’s ``src/main.rs``.
+. Read link:{repo}/keyringd-core/src/model/passkey/passkey.rs[``Passkey``] and link:{repo}/keyringd-core/src/model/device_key/device_key.rs[``DeviceKey``] from link:{repo}/keyringd-core/src/model/profile.rs[``Profile``]. Here we hold down the information stored and the relationship between identity.
+. Look at the operations that can be called from the outside with link:{repo}/keyringd-core/src/application/keyringd_application.rs[``KeyringdApplication``] and follow the registration cycle with link:{repo}/keyringd-core/src/execution/profile_setup/setup_profile_execution.rs[``SetupProfileExecution``].
+. Read the distribution of signatures from link:{repo}/keyringd-core/src/agent/keyringd_agent_request_handler.rs[``KeyringdAgentRequestHandler``] and see the boundary with connection processing with link:{repo}/keyringd-ssh-agent-protocol/src/ssh_agent.rs[``SshAgent``].
+. Read link:{repo}/keyringd-fido-client/src/client/fido_client.rs[``FidoClient``] and link:{repo}/keyringd-ui-core/src/key_operation/key_operation_coordinator.rs[``KeyOperationCoordinator``] and follow the routes for interacting with the authenticator to reach the screen.
+
+In system testing, the window/page of Feature is responsible for the element name/state determination that is specific to the screen, and ``UiDriver`` of each OS is in charge of searching, input, waiting, and diagnosis. Linux ``AtspiSession`` is responsible for AT-SPI connection, search scope, tree cache and single-shot inquiries. Common operational contracts are defined in TRAIT in Feature, and native connections and resource management are confined to each OS.
+
+Windows/macOS ``TestApp`` manages process start/stop/start/start settings, and ``SystemTestApplication`` provides the entrance for screen operations. The presence of the screen is observed from the UI and does not overlap the open/close state to the Application side. The Windows Wait API also distinguishes the wait condition from being unsuccessful and the failure of the query.
+
+The USB key will be reconnected after the failure of the connection is done. SSH child processes, outputs, and deadlines are common ``SshClient``, and the server and authentication results are owned by Session. Windows Runner will supervise scenarios on a case-by-case job and expiry date, and the CNG keys for testing are recovered from a separate case ledger from the Profile.
+
+Testing is also in line with the division of responsibility. Type-by-type UTs are available for implementation files, ``src/tests/spec`` and ``tests/spec`` for each crates for specification tests. ``tests/keyringd-system-tests`` summarizes scenarios such as OS applications, SSH connections, and Profile operations, and runs environments by OS. ``keyringd-testkit``, test authenticators, USB/IP implementations support its validation.
+
+The execution entrance for development, packaging, and documentation is ``xtask``. This website is generated from ``website``'s ASCIIDOC and templates and is not included in the product's runtime process.

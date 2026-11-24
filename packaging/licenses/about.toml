@@ -1,0 +1,270 @@
+# Prefer MIT when a dependency offers MIT OR Apache-2.0.
+# Read crate-level license documents; nested documents need explicit clarifications.
+max-depth = 1
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "BSL-1.0",
+    "MPL-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+]
+ignore-dev-dependencies = true
+# License collection tools are not shipped in the application.
+ignore-build-dependencies = true
+
+# Test fixture dependencies need the same source-text guarantees as the product.
+[granit-parser.clarify]
+license = "MIT"
+files = [
+    { path = "LICENSE", checksum = "1af262e6647807eecaec988ecf2b783fb8fdbdecba396d582c1aab90615f6845" },
+    { path = ".licenses/ChenYuheng-MIT", checksum = "70480dc70c2fe1d9bbb64dab9a0abce266332905ffef9cabeae26dd027716ecb" },
+    { path = ".licenses/Ethiraric-MIT", checksum = "90f4ea53f408858ba4886f57b8e3ceac876eefbb59c20f0844f0abbfa59e2749" },
+]
+
+[rcgen.clarify]
+license = "MIT"
+files = [{ path = "LICENSE", checksum = "debe6fed7ac143217c7f533759c54b14f18cd01d5fe195c51d83c2ae2d136cb4" }]
+
+[maud.clarify]
+license = "MIT"
+files = [{ path = "vendored/maud-LICENSE-MIT", checksum = "8764a597675778ddfd4e25f81b08a05dbcf089ac05662df7613fe67f150e3aa2" }]
+
+[maud_macros.clarify]
+license = "MIT"
+files = [{ path = "vendored/maud-LICENSE-MIT", checksum = "8764a597675778ddfd4e25f81b08a05dbcf089ac05662df7613fe67f150e3aa2" }]
+
+[curve25519-dalek.clarify]
+license = "BSD-3-Clause"
+files = [{ path = "LICENSE", checksum = "cca0bd3c4fcdba74145ef9d49c62337e2c9fbf9368288f11d0547f1b0273219f" }]
+
+[btleplug.clarify]
+license = "BSD-3-Clause AND (MIT OR Apache-2.0)"
+files = [{ path = "LICENSE.md", checksum = "95f1ea7e261c12c46fe8f67d2ddb7a92ebb1a5fd10d127e4ab3003f0701d9f56" }]
+
+[bluez-async.clarify]
+license = "MIT"
+files = [{ path = "vendored/bluez-async-LICENSE-MIT", checksum = "eef0c0b2cf6e14147a8362cfa2408a79220cc1ea22bab1a2e188b9cd1d2e0f0d" }]
+
+[bluez-generated.clarify]
+license = "MIT"
+files = [{ path = "vendored/bluez-generated-LICENSE-MIT", checksum = "eef0c0b2cf6e14147a8362cfa2408a79220cc1ea22bab1a2e188b9cd1d2e0f0d" }]
+
+# windows-rs uses indented MIT text; bind it explicitly to its source notice.
+
+[windows.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-canvas.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-collections.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-composition.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-core.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-future.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-implement.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-interface.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-link.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-numerics.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-reactor.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-reference.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-result.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-strings.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-sys.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-targets.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-threading.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-time.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows-window.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+[windows_x86_64_msvc.clarify]
+license = "MIT"
+files = [{ path = "license-mit", checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383" }]
+
+# dpi includes both its Apache license and the libm-derived MIT notice.
+[dpi.clarify]
+license = "Apache-2.0 AND MIT"
+files = [
+    { path = "LICENSE", checksum = "6dc0e068dcf3a5bc8e054205b85b7720e1d49265bbc64bf515d2cf79197df69a" },
+    { path = "LICENSE-LIBM-MIT", checksum = "9eff396a99bafd208e7126602420d6864f6066c08b84485a5b032320a9c01997" },
+]
+
+# objc2 publishes license declarations without the upstream license texts.
+
+[block2.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[dispatch2.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-encode.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-app-kit.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-cloud-kit.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-core-bluetooth.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-core-data.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-core-foundation.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-core-graphics.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-core-image.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-core-text.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-core-video.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-foundation.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-quartz-core.clarify]
+license = "MIT"
+files = [
+    { path = "vendored/objc2-LICENSE-MIT.txt", checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070" },
+    { path = "vendored/objc2-legacy-LICENSE.txt", checksum = "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5" },
+]
+
+[objc2-security.clarify]
+license = "MIT"
+[[objc2-security.clarify.files]]
+path = "vendored/objc2-LICENSE-MIT.txt"
+checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070"
+
+[objc2-core-services.clarify]
+license = "MIT"
+[[objc2-core-services.clarify.files]]
+path = "vendored/objc2-LICENSE-MIT.txt"
+checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070"
+
+[objc2-service-management.clarify]
+license = "MIT"
+[[objc2-service-management.clarify.files]]
+path = "vendored/objc2-LICENSE-MIT.txt"
+checksum = "f6a2e783669a0dd7a2c3b8a4f76db40ae49033e66e1bdc30f3aa25fe5577b070"

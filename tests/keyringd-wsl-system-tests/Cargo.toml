@@ -1,0 +1,21 @@
+[package]
+name = "keyringd-wsl-system-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[[test]]
+name = "scenarios"
+path = "tests/scenarios/main.rs"
+test = false
+
+[target.'cfg(target_os = "windows")'.dependencies]
+anyhow.workspace = true
+keyringd-core = { path = "../../keyringd-core" }
+keyringd-testkit = { path = "../keyringd-testkit" }
+keyringd-system-tests = { path = "../keyringd-system-tests" }
+uuid = { workspace = true, features = ["v4"] }
+tokio = { workspace = true, features = ["rt"] }
+

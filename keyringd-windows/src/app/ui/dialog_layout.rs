@@ -1,0 +1,3 @@
+pub(super) const PASSKEY_DIALOG_WIDTH: f64 = 440.0;
+
+pub(super) const PASSKEY_CONTENT_WIDTH: f64 = PASSKEY_DIALOG_WIDTH - 48.0;

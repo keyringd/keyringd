@@ -1,0 +1,20 @@
+name: Coverage results
+description: Upload normalized product coverage for final aggregation.
+inputs:
+  environment:
+    description: Unique suite and OS name
+    required: true
+  directory:
+    description: Coverage session output directory
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/upload-artifact@v7
+      with:
+        name: coverage-${{ inputs.environment }}
+        path: |
+          ${{ inputs.directory }}/lcov.info
+          ${{ inputs.directory }}/metadata.json
+        if-no-files-found: error
+        retention-days: 7

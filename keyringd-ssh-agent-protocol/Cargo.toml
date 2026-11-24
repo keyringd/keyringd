@@ -1,0 +1,16 @@
+[package]
+name = "keyringd-ssh-agent-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["io-util", "macros", "rt", "sync", "time"] }
+tracing.workspace = true
+
+[dev-dependencies]
+mockall.workspace = true
+keyringd-testkit = { path = "../tests/keyringd-testkit" }

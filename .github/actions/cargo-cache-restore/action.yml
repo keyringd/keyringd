@@ -1,0 +1,105 @@
+name: Restore Cargo caches
+description: Restore Cargo sources and bounded sccache compilation results.
+inputs:
+  runner-image:
+    description: Runner or container image used to build native dependencies.
+    required: true
+outputs:
+  sources-key:
+    description: Primary Cargo source cache key.
+    value: ${{ steps.sources.outputs.cache-primary-key }}
+  sources-hit:
+    description: Whether the Cargo source cache matched exactly.
+    value: ${{ steps.sources.outputs.cache-hit }}
+  sccache-key:
+    description: Unique key for this run's compilation cache.
+    value: sccache-v1-${{ inputs.runner-image }}-${{ runner.arch }}-${{ github.job }}--${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index || 0 }}
+  sccache-directory:
+    description: Directory containing bounded compilation results.
+    value: ${{ steps.install.outputs.cache-directory }}
+runs:
+  using: composite
+  steps:
+    - name: Install sccache
+      id: install
+      uses: actions/github-script@v9
+      with:
+        script: |
+          const { createHash } = require('node:crypto');
+          const { execFileSync } = require('node:child_process');
+          const fs = require('node:fs/promises');
+          const path = require('node:path');
+
+          // Official release archives, pinned together with their SHA-256 digests.
+          const version = '0.19.0';
+          const releases = {
+            'linux-x64': ['x86_64-unknown-linux-musl', 'aa73c7270c997894038c0d8f0d297865f57569e1687883322bc431713d4bb9dd'],
+            'win32-x64': ['x86_64-pc-windows-msvc', '130e4f8eb672e76590e9993c2ab890c4763b88238577bb11d8062158c7698353'],
+            'darwin-arm64': ['aarch64-apple-darwin', 'a35a0b7d622618774bc1bb8102d72562dfb21e619f88b153b370d7f89bc286af'],
+            'darwin-x64': ['x86_64-apple-darwin', '2db7344bb96de350df79cd9f0124dd4e9baa47b3de2fac1e63e1346b66b20684'],
+          };
+
+          const release = releases[`${process.platform}-${process.arch}`];
+          if (!release) throw new Error(`Unsupported sccache host: ${process.platform}-${process.arch}`);
+          const [triple, digest] = release;
+          const name = `sccache-v${version}-${triple}`;
+          const directory = path.join(process.env.RUNNER_TEMP, 'sccache');
+          await fs.mkdir(directory, { recursive: true });
+          let response;
+          for (let attempt = 1; attempt <= 4; attempt++) {
+            try {
+              response = await fetch(`https://github.com/mozilla/sccache/releases/download/v${version}/${name}.tar.gz`, {
+                signal: AbortSignal.timeout(120_000),
+              });
+              if (response.ok) break;
+              if (response.status < 500 && ![408, 429].includes(response.status)) {
+                throw new Error(`sccache download failed: HTTP ${response.status}`);
+              }
+              if (attempt === 4) throw new Error(`sccache download failed: HTTP ${response.status}`);
+              await response.body?.cancel();
+            } catch (error) {
+              if (attempt === 4 || (response && response.status < 500 && ![408, 429].includes(response.status))) throw error;
+              core.warning(`sccache download attempt ${attempt} failed: ${error.message}`);
+            }
+            core.warning(`Retrying sccache download (${attempt}/4)`);
+            await new Promise(resolve => setTimeout(resolve, attempt * 5000));
+          }
+          const archive = Buffer.from(await response.arrayBuffer());
+          if (createHash('sha256').update(archive).digest('hex') !== digest) {
+            throw new Error('sccache archive SHA-256 mismatch');
+          }
+          const archivePath = path.join(directory, `${name}.tar.gz`);
+          await fs.writeFile(archivePath, archive);
+          execFileSync('tar', ['-xzf', archivePath, '-C', directory], { stdio: 'inherit' });
+          const binDirectory = path.join(directory, name);
+          const executable = path.join(binDirectory, process.platform === 'win32' ? 'sccache.exe' : 'sccache');
+          execFileSync(executable, ['--version'], { stdio: 'inherit' });
+          const cacheDirectory = path.join(process.env.RUNNER_TEMP, 'sccache-cache');
+          core.addPath(binDirectory);
+          core.exportVariable('RUSTC_WRAPPER', executable);
+          core.exportVariable('CARGO_INCREMENTAL', '0');
+          core.exportVariable('SCCACHE_DIR', cacheDirectory);
+          core.exportVariable('SCCACHE_CACHE_SIZE', '2G');
+          core.exportVariable('SCCACHE_BASEDIRS', process.env.GITHUB_WORKSPACE);
+          // Preserve statistics until the save step, even during long E2E runs.
+          core.exportVariable('SCCACHE_IDLE_TIMEOUT', '0');
+          core.setOutput('cache-directory', cacheDirectory);
+    - name: Restore Cargo sources
+      id: sources
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: cargo-sources-v3-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}
+        restore-keys: cargo-sources-v3-${{ runner.os }}-${{ runner.arch }}-
+    - name: Restore sccache compilation results
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.install.outputs.cache-directory }}
+        key: sccache-v1-${{ inputs.runner-image }}-${{ runner.arch }}-${{ github.job }}--${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index || 0 }}
+        # Compilation keys inside sccache validate compiler, source and flags.
+        restore-keys: sccache-v1-${{ inputs.runner-image }}-${{ runner.arch }}-${{ github.job }}--
+    - name: Start sccache
+      shell: bash
+      run: sccache --start-server

@@ -1,0 +1,24 @@
+name: Bump version after release
+description: Advance master to the next patch after successful release publication.
+runs:
+  using: composite
+  steps:
+    - name: Bump product version
+      id: next
+      uses: ./.github/actions/update-product-version
+      with:
+        operation: bump
+    - name: Commit next version
+      shell: bash
+      env:
+        NEXT_VERSION: ${{ steps.next.outputs.version }}
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add \
+          Cargo.toml \
+          Cargo.lock
+        git commit -m "Start development of $NEXT_VERSION"
+        git pull --rebase origin master
+        git push origin HEAD:refs/heads/master

@@ -1,0 +1,12 @@
+Package: keyringd
+Version: @PACKAGE_VERSION@
+Architecture: amd64
+Section: net
+Priority: optional
+Maintainer: Keyringd maintainers <info@keyringd.com>
+Homepage: https://github.com/keyringd/keyringd
+Depends: @SHLIB_DEPENDENCIES@init-system-helpers (>= 1.61), passwd, pkexec
+Conflicts: keyringd-wsl
+Description: Native Linux desktop passkey-backed SSH agent
+ Keyringd protects device keys with the Linux TPM and manages passkey
+ credentials through FIDO authenticators.

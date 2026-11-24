@@ -1,0 +1,75 @@
+name: Prepare release
+description: Prepare a numbered release or nightly build commit without changing master.
+inputs:
+  channel:
+    description: release or nightly.
+    required: true
+  version:
+    description: Optional version for a numbered release; defaults to workspace.package.version.
+    default: ''
+outputs:
+  commit:
+    description: Exact source commit for every build.
+    value: ${{ steps.source.outputs.commit }}
+  tag:
+    description: Tag for the GitHub Release.
+    value: ${{ steps.version.outputs.tag }}
+runs:
+  using: composite
+  steps:
+    - name: Select version
+      id: version
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        case "$CHANNEL" in
+          release)
+            if [[ -z "$VERSION" ]]; then
+              VERSION="$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')"
+            fi
+            : "${VERSION:?Product version is missing}"
+            tag="v$VERSION"
+            if git show-ref --verify --quiet "refs/tags/$tag"; then
+              echo "Release tag $tag already exists" >&2
+              exit 1
+            fi
+            ;;
+          nightly)
+            VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)"
+            : "${VERSION:?Product version is missing}"
+            VERSION="${VERSION%%[-+]*}-nightly"
+            tag="nightly"
+            ;;
+          *) echo "Unsupported distribution channel: $CHANNEL" >&2; exit 1 ;;
+        esac
+        {
+          echo "version=$VERSION"
+          echo "tag=$tag"
+        } >> "$GITHUB_OUTPUT"
+    - name: Set product version
+      uses: ./.github/actions/update-product-version
+      with:
+        operation: set
+        version: ${{ steps.version.outputs.version }}
+    - name: Prepare source
+      id: source
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        VERSION: ${{ steps.version.outputs.version }}
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add \
+          Cargo.toml \
+          Cargo.lock
+        git commit --allow-empty -m "Build $CHANNEL $VERSION"
+        # All jobs check out this commit; master advances only in the post-release bump.
+        staging_tag="release-staging/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+        git tag "$staging_tag" HEAD
+        git push origin "refs/tags/$staging_tag"
+        echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,22 @@
+= Project
+:description: Learn about Keyringd's origins, project principles, and open-source license.
+:toc:
+:toclevels: 2
+:sectanchors:
+:notitle:
+
+Keyringd is an open-source SSH agent that combines hardware-protected keys with passkey-based authorization. It was started by a maintainer of WebAuthn4J, an open-source server-side WebAuthn library, to explore how passkeys could be used beyond website sign-ins.
+
+The goal was to protect SSH private keys in hardware—not at the cost of convenience.
+
+== Project principles
+
+We prioritize security and transparency. We keep dependencies to a minimum and work toward reproducible builds, so that published binaries can be independently verified against the source.
+
+== Feedback
+
+Bug reports and suggestions are welcome on https://github.com/keyringd/keyringd/issues[GitHub Issues].
+
+== Source and license
+
+Keyringd is available under the https://github.com/keyringd/keyringd/blob/master/LICENSE[Apache License 2.0]. The https://github.com/keyringd/keyringd[source repository] contains the application, documentation, and build and test infrastructure.

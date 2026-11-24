@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+  "https://polkit.pages.freedesktop.org/polkit/policyconfig-1.dtd">
+<policyconfig>
+  <action id="com.keyringd.grant-tpm-access">
+    <description>Grant the current user access to the TPM</description>
+    <message>Administrator authentication is required to add your account to the tss group.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/keyringd/grant-tpm-access</annotate>
+  </action>
+</policyconfig>

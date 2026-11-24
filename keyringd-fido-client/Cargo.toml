@@ -1,0 +1,47 @@
+[package]
+name = "keyringd-fido-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+test-support = []
+
+[dependencies]
+aes.workspace = true
+aes-gcm.workspace = true
+flate2.workspace = true
+base64.workspace = true
+btleplug.workspace = true
+cbc = { workspace = true, features = ["alloc"] }
+futures-util.workspace = true
+hkdf.workspace = true
+hmac.workspace = true
+keyringd-fido = { path = "../keyringd-fido" }
+p256 = { workspace = true, features = ["ecdh"] }
+rand_core = { workspace = true, features = ["getrandom"] }
+sha2.workspace = true
+snow = { workspace = true, features = ["use-p256"] }
+subtle.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "net", "rt", "sync", "time"] }
+tokio-util.workspace = true
+tokio-tungstenite = { workspace = true, features = ["rustls-tls-native-roots"] }
+rustls = { workspace = true, features = ["ring"] }
+tracing.workspace = true
+uuid.workspace = true
+url.workspace = true
+zeroize = { workspace = true, features = ["derive"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+hidapi = { workspace = true, features = ["linux-static-hidraw"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+hidapi = { workspace = true, features = ["macos-shared-device"] }
+
+[dev-dependencies]
+hex-literal.workspace = true
+mockall.workspace = true
+keyringd-test-authenticator = { path = "../tests/keyringd-test-authenticator" }
+keyringd-testkit = { path = "../tests/keyringd-testkit" }
+tokio = { workspace = true, features = ["macros", "rt"] }
