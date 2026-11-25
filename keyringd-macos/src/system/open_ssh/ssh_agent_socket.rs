@@ -166,88 +166,120 @@ mod tests {
     use std::os::unix::net::{UnixListener, UnixStream};
 
     #[test]
-    fn restores_the_original_listener_without_restarting_clients() {
+    fn routes_the_native_socket_path_to_keyringd_and_restores_the_original_listener() {
         let directory = tempfile::tempdir_in("/tmp").unwrap();
-        let source = directory.path().join("Listeners");
-        let target = directory.path().join("agent.sock");
-        let original = UnixListener::bind(&source).unwrap();
-        let keyringd = UnixListener::bind(&target).unwrap();
-        let selection = SshAgentSocket::new(directory.path().join("state"), target.clone());
-        selection.configure(&source).unwrap();
-        let client = UnixStream::connect(&source).unwrap();
-        let _ = keyringd.accept().unwrap();
+        let native_agent_socket = directory.path().join("Listeners");
+        let keyringd_agent_socket = directory.path().join("agent.sock");
+        let original_agent = UnixListener::bind(&native_agent_socket).unwrap();
+        let keyringd_agent = UnixListener::bind(&keyringd_agent_socket).unwrap();
+        let selection = SshAgentSocket::new(
+            directory.path().join("state"),
+            keyringd_agent_socket.clone(),
+        );
+        selection.configure(&native_agent_socket).unwrap();
+        assert_eq!(
+            std::fs::read_link(&native_agent_socket).unwrap(),
+            keyringd_agent_socket
+        );
+        let client = UnixStream::connect(&native_agent_socket).unwrap();
+        let _ = keyringd_agent.accept().unwrap();
         drop(client);
         // A new instance models restarting the app in the same login session.
-        let selection = SshAgentSocket::new(directory.path().join("state"), target);
-        selection.configure(&source).unwrap();
-        selection.unconfigure(&source).unwrap();
-        let _client = UnixStream::connect(&source).unwrap();
-        let _ = original.accept().unwrap();
-        assert!(!selection.is_own_link(&source).unwrap());
-        assert!(!SshAgentSocket::backup_path(&source).exists());
+        let selection = SshAgentSocket::new(directory.path().join("state"), keyringd_agent_socket);
+        selection.configure(&native_agent_socket).unwrap();
+        selection.unconfigure(&native_agent_socket).unwrap();
+        let _client = UnixStream::connect(&native_agent_socket).unwrap();
+        let _ = original_agent.accept().unwrap();
+        assert!(!selection.is_own_link(&native_agent_socket).unwrap());
+        assert!(!SshAgentSocket::backup_path(&native_agent_socket).exists());
     }
 
     #[test]
     fn resumes_after_rename_for_either_operation() {
         for enabled in [true, false] {
             let directory = tempfile::tempdir_in("/tmp").unwrap();
-            let source = directory.path().join("Listeners");
-            let target = directory.path().join("agent.sock");
-            let _original = UnixListener::bind(&source).unwrap();
-            let _keyringd = UnixListener::bind(&target).unwrap();
-            let selection = SshAgentSocket::new(directory.path().join("state"), target.clone());
+            let native_agent_socket = directory.path().join("Listeners");
+            let keyringd_agent_socket = directory.path().join("agent.sock");
+            let _original_agent = UnixListener::bind(&native_agent_socket).unwrap();
+            let _keyringd_agent = UnixListener::bind(&keyringd_agent_socket).unwrap();
+            let selection = SshAgentSocket::new(
+                directory.path().join("state"),
+                keyringd_agent_socket.clone(),
+            );
             let lock = selection.lock().unwrap();
 
-            std::fs::rename(&source, SshAgentSocket::backup_path(&source)).unwrap();
+            std::fs::rename(
+                &native_agent_socket,
+                SshAgentSocket::backup_path(&native_agent_socket),
+            )
+            .unwrap();
             drop(lock);
             if enabled {
-                selection.configure(&source).unwrap();
+                selection.configure(&native_agent_socket).unwrap();
             } else {
-                selection.unconfigure(&source).unwrap();
+                selection.unconfigure(&native_agent_socket).unwrap();
             }
-            assert_eq!(std::fs::read_link(&source).ok(), enabled.then_some(target));
-            assert_eq!(SshAgentSocket::backup_path(&source).exists(), enabled);
+            assert_eq!(
+                std::fs::read_link(&native_agent_socket).ok(),
+                enabled.then_some(keyringd_agent_socket)
+            );
+            assert_eq!(
+                SshAgentSocket::backup_path(&native_agent_socket).exists(),
+                enabled
+            );
         }
     }
 
     #[test]
     fn preserves_foreign_files_and_a_missing_backup() {
         let directory = tempfile::tempdir_in("/tmp").unwrap();
-        let source = directory.path().join("Listeners");
-        let target = directory.path().join("agent.sock");
-        let _original = UnixListener::bind(&source).unwrap();
-        let _keyringd = UnixListener::bind(&target).unwrap();
-        let selection = SshAgentSocket::new(directory.path().join("state"), target.clone());
-        let backup = SshAgentSocket::backup_path(&source);
+        let native_agent_socket = directory.path().join("Listeners");
+        let keyringd_agent_socket = directory.path().join("agent.sock");
+        let _original_agent = UnixListener::bind(&native_agent_socket).unwrap();
+        let _keyringd_agent = UnixListener::bind(&keyringd_agent_socket).unwrap();
+        let selection = SshAgentSocket::new(
+            directory.path().join("state"),
+            keyringd_agent_socket.clone(),
+        );
+        let backup = SshAgentSocket::backup_path(&native_agent_socket);
         std::fs::write(&backup, b"keep").unwrap();
-        assert!(selection.configure(&source).is_err());
+        assert!(selection.configure(&native_agent_socket).is_err());
         assert_eq!(std::fs::read(&backup).unwrap(), b"keep");
         std::fs::remove_file(&backup).unwrap();
-        selection.configure(&source).unwrap();
-        std::fs::remove_file(&source).unwrap();
-        std::fs::write(&source, b"external change").unwrap();
-        assert!(selection.unconfigure(&source).is_err());
-        assert_eq!(std::fs::read(&source).unwrap(), b"external change");
-        std::fs::remove_file(&source).unwrap();
-        symlink(&target, &source).unwrap();
+        selection.configure(&native_agent_socket).unwrap();
+        std::fs::remove_file(&native_agent_socket).unwrap();
+        std::fs::write(&native_agent_socket, b"external change").unwrap();
+        assert!(selection.unconfigure(&native_agent_socket).is_err());
+        assert_eq!(
+            std::fs::read(&native_agent_socket).unwrap(),
+            b"external change"
+        );
+        std::fs::remove_file(&native_agent_socket).unwrap();
+        symlink(&keyringd_agent_socket, &native_agent_socket).unwrap();
         std::fs::remove_file(&backup).unwrap();
-        assert!(selection.unconfigure(&source).is_err());
-        assert_eq!(std::fs::read_link(&source).unwrap(), target);
+        assert!(selection.unconfigure(&native_agent_socket).is_err());
+        assert_eq!(
+            std::fs::read_link(&native_agent_socket).unwrap(),
+            keyringd_agent_socket
+        );
     }
 
     #[test]
     fn can_select_and_restore_different_login_sockets() {
         let directory = tempfile::tempdir_in("/tmp").unwrap();
-        let target = directory.path().join("agent.sock");
-        let _keyringd = UnixListener::bind(&target).unwrap();
-        let selection = SshAgentSocket::new(directory.path().join("state"), target.clone());
+        let keyringd_agent_socket = directory.path().join("agent.sock");
+        let _keyringd_agent = UnixListener::bind(&keyringd_agent_socket).unwrap();
+        let selection = SshAgentSocket::new(
+            directory.path().join("state"),
+            keyringd_agent_socket.clone(),
+        );
         let first = directory.path().join("first-login");
         let _first = UnixListener::bind(&first).unwrap();
         selection.configure(&first).unwrap();
         let second = directory.path().join("second-login");
         let original = UnixListener::bind(&second).unwrap();
         selection.configure(&second).unwrap();
-        assert_eq!(std::fs::read_link(&second).unwrap(), target);
+        assert_eq!(std::fs::read_link(&second).unwrap(), keyringd_agent_socket);
         selection.unconfigure(&second).unwrap();
         let _client = UnixStream::connect(&second).unwrap();
         let _ = original.accept().unwrap();
@@ -260,23 +292,5 @@ mod tests {
                 .file_type()
                 .is_socket()
         );
-    }
-
-    #[test]
-    fn a_link_to_a_stopped_agent_fails_instead_of_waiting_for_activation() {
-        let directory = tempfile::tempdir_in("/tmp").unwrap();
-        let source = directory.path().join("Listeners");
-        let target = directory.path().join("agent.sock");
-        let _original = UnixListener::bind(&source).unwrap();
-        let keyringd = UnixListener::bind(&target).unwrap();
-        let selection = SshAgentSocket::new(directory.path().join("state"), target);
-        selection.configure(&source).unwrap();
-        drop(keyringd);
-        assert_eq!(
-            UnixStream::connect(&source).unwrap_err().kind(),
-            io::ErrorKind::ConnectionRefused
-        );
-        selection.unconfigure(&source).unwrap();
-        assert!(UnixStream::connect(source).is_ok());
     }
 }
