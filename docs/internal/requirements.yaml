@@ -5382,8 +5382,7 @@ requirements:
     tests:
       - keyringd-linux::keyringd_linux::tests::spec::rfc9987::endpoint::creates_an_owner_only_unix_agent_endpoint
       - keyringd-linux::keyringd_linux::tests::spec::rfc9987::endpoint::declares_an_owner_only_systemd_agent_socket
-      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::creates_an_owner_only_macos_agent_endpoint
-      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::declares_an_owner_only_launchd_agent_socket
+      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::owns_an_owner_only_macos_agent_socket_and_closes_it_with_the_process_listener
       - keyringd-wsl::keyringd_wsl_proxy::tests::spec::rfc9987::endpoint::creates_an_owner_only_wsl_agent_endpoint
       - keyringd-wsl::keyringd_wsl_proxy::tests::spec::rfc9987::endpoint::publishes_a_private_discoverable_wsl_agent_endpoint_through_systemd
       - keyringd-windows::keyringd_windows::tests::spec::rfc9987::windows_endpoint_access::restricts_the_windows_agent_pipe_to_authorized_local_principals
@@ -5401,7 +5400,7 @@ requirements:
     text: In both cases, it is common to expose the name or address of the listening endpoint via an environment variable named "SSH_AUTH_SOCK". Clients of an agent will use this variable to locate and connect to the listening agent. Alternatively, agents MAY use an implicit mechanism for clients to locate their endpoint, such as a default per-user location.
     tests:
       - keyringd-linux::keyringd_linux::system::open_ssh::configuration::tests::publishes_a_discoverable_per_user_agent_endpoint_to_openssh
-      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::publishes_the_macos_agent_endpoint_through_launchd
+      - keyringd-macos::keyringd_macos::system::open_ssh::ssh_agent_socket::tests::routes_the_native_socket_path_to_keyringd_and_restores_the_original_listener
       - keyringd-wsl::keyringd_wsl_proxy::tests::spec::rfc9987::endpoint::publishes_a_private_discoverable_wsl_agent_endpoint_through_systemd
       - keyringd-windows::keyringd_windows::tests::spec::rfc9987::endpoint_discovery::discovers_the_windows_agent_through_ssh_auth_sock
 
@@ -5724,8 +5723,7 @@ requirements:
     tests:
       - keyringd-linux::keyringd_linux::tests::spec::rfc9987::endpoint::creates_an_owner_only_unix_agent_endpoint
       - keyringd-linux::keyringd_linux::tests::spec::rfc9987::endpoint::declares_an_owner_only_systemd_agent_socket
-      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::creates_an_owner_only_macos_agent_endpoint
-      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::declares_an_owner_only_launchd_agent_socket
+      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::owns_an_owner_only_macos_agent_socket_and_closes_it_with_the_process_listener
       - keyringd-wsl::keyringd_wsl_proxy::tests::spec::rfc9987::endpoint::creates_an_owner_only_wsl_agent_endpoint
       - keyringd-wsl::keyringd_wsl_proxy::tests::spec::rfc9987::endpoint::publishes_a_private_discoverable_wsl_agent_endpoint_through_systemd
       - keyringd-windows::keyringd_windows::tests::spec::rfc9987::windows_endpoint_access::restricts_the_windows_agent_pipe_to_authorized_local_principals
@@ -5737,8 +5735,7 @@ requirements:
     tests:
       - keyringd-linux::keyringd_linux::tests::spec::rfc9987::endpoint::creates_an_owner_only_unix_agent_endpoint
       - keyringd-linux::keyringd_linux::tests::spec::rfc9987::endpoint::declares_an_owner_only_systemd_agent_socket
-      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::creates_an_owner_only_macos_agent_endpoint
-      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::declares_an_owner_only_launchd_agent_socket
+      - keyringd-macos::keyringd_macos::tests::spec::rfc9987::endpoint::owns_an_owner_only_macos_agent_socket_and_closes_it_with_the_process_listener
       - keyringd-wsl::keyringd_wsl_proxy::tests::spec::rfc9987::endpoint::creates_an_owner_only_wsl_agent_endpoint
       - keyringd-wsl::keyringd_wsl_proxy::tests::spec::rfc9987::endpoint::publishes_a_private_discoverable_wsl_agent_endpoint_through_systemd
 
