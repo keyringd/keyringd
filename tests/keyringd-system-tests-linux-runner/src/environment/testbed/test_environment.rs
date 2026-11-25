@@ -420,16 +420,19 @@ impl<'a> TestEnvironment<'a> {
     }
 
     fn configure_user_manager(&self) -> Result<()> {
-        self.command.run_as_root(
-            "E2E application restart policy",
-            [
-                "install",
-                "-D",
-                "--mode=0644",
-                "/workspace/tests/keyringd-system-tests-linux-runner/testbed/keyringd-e2e-restarts.conf",
-                "/etc/systemd/user/keyringd-desktop.service.d/e2e-restarts.conf",
-            ],
-        )?;
+        for unit in ["keyringd-desktop.service", "keyringd-agent.socket"] {
+            let destination = format!("/etc/systemd/user/{unit}.d/e2e-restarts.conf");
+            self.command.run_as_root(
+                "E2E application restart policy",
+                [
+                    "install",
+                    "-D",
+                    "--mode=0644",
+                    "/workspace/tests/keyringd-system-tests-linux-runner/testbed/keyringd-e2e-restarts.conf",
+                    &destination,
+                ],
+            )?;
+        }
         let mut environment = vec!["systemctl", "--user", "set-environment"];
         environment.extend_from_slice(APPLICATION_ENVIRONMENT);
         self.command
