@@ -26,6 +26,15 @@ updates:
           - "*"
 
   - package-ecosystem: gradle
+    directory: /website
+    schedule:
+      interval: weekly
+    groups:
+      website-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: gradle
     directory: /tests/keyringd-test-usbip/authenticator-server
     schedule:
       interval: weekly

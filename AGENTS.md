@@ -22,6 +22,7 @@
 ## Pull requests
 
 - Write PR titles and descriptions in English.
+- Keep PR descriptions concise and limited to essential information. Do not divide them into sections unless explicitly instructed.
 - Explain what changed, why it changed, and anything reviewers need to know.
 - Do not list local results for checks already run by CI.
 - Mention verification outside CI when it materially helps review.

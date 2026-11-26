@@ -2,6 +2,8 @@
 /tests/*/target
 /website/target
 /website/node_modules
+/website/.gradle
+/website/build
 /dist
 /.wix
 /.test

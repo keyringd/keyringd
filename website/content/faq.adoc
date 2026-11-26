@@ -5,7 +5,7 @@
 :sectanchors:
 :notitle:
 
-Common questions about setting up and using Keyringd. For a walkthrough of your first connection, see link:{site-path}getting-started/[Getting started].
+Common questions about setting up and using Keyringd. For a walkthrough of your first connection, see link:{site-path}setup/[Set up Keyringd].
 
 == Do I need my passkey every time I connect?
 
@@ -55,7 +55,7 @@ See link:{site-path}installation/[Installation] for client setup, including Git 
 
 No. Keyringd generates new Device Keys inside your computer's TPM or Secure Enclave. Importing an existing private key would not undo any copies that may already exist outside the hardware.
 
-Follow link:{site-path}getting-started/[Getting started] to create a new Device Key and register its CA or public key on your servers.
+Follow link:{site-path}setup/[Set up Keyringd] to create a new Device Key and register its CA or public key on your servers.
 
 == What happens when I replace my computer?
 
@@ -87,7 +87,7 @@ See link:{site-path}guides/adding-or-replacing-a-computer/#_if_the_passkey_is_lo
 
 Everyday connections using a Device Key only need network access to your SSH server. Phone passkey operations require internet access and Bluetooth on both your computer and phone. Passkey operations with a USB security key can work offline.
 
-See link:{site-path}installation/#_platform_requirements[Platform requirements] for phone and security-key requirements.
+See link:{site-path}setup/#_what_you_need[What you need] for phone and security-key requirements.
 
 == Do Device Certificates expire?
 

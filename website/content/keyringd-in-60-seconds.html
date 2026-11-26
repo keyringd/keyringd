@@ -1,0 +1,33 @@
+---
+title: Keyringd in 60 seconds
+description: See how Keyringd keeps SSH private keys in hardware and lets you replace your computer without changing servers that already trust your SSH CA.
+layout: docs
+---
+<p id="intro-video-summary" class="intro-video-summary">See how Keyringd keeps your SSH private key in hardware and lets you replace your computer without reconfiguring servers that already trust your SSH CA.</p>
+<div class="intro-video">
+  <video id="intro-video" class="intro-video-player" controls playsinline preload="metadata"
+    width="1280" height="720" poster="{site.url.resolve('media/keyringd-in-60-seconds-poster.png')}?v=a9826a352758"
+    aria-label="Keyringd introduction" aria-describedby="intro-video-summary">
+    <source src="{site.url.resolve('media/keyringd-in-60-seconds.mp4')}?v=a9826a352758" type="video/mp4">
+    <a href="{site.url.resolve('media/keyringd-in-60-seconds.mp4')}">Download the Keyringd introduction (MP4)</a>
+  </video>
+  <div class="intro-video-controls" role="group" aria-label="Video controls" hidden>
+    <button type="button" class="intro-video-play" aria-label="Play" aria-controls="intro-video">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+        <path class="play-icon" d="M7 4v16l13-8Z" />
+        <path class="pause-icon" d="M6 4h4v16H6zm8 0h4v16h-4z" />
+      </svg>
+    </button>
+    <input type="range" class="intro-video-seek" aria-label="Seek" aria-controls="intro-video" min="0" max="0" step="any" value="0" disabled>
+    <span class="intro-video-time" aria-hidden="true">0:00 / 0:00</span>
+    <button type="button" class="intro-video-fullscreen" aria-label="Full screen" aria-pressed="false" hidden>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5" />
+      </svg>
+    </button>
+  </div>
+</div>
+<script defer src="{site.url.resolve('js/intro-video.js')}"></script>
+<div class="actions intro-video-actions">
+  <a class="button primary" href="{site.url.resolve('installation/')}">Get started</a>
+</div>

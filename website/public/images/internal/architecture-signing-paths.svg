@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1160" height="1060" viewBox="0 0 1160 1060" role="img" aria-labelledby="title desc">
   <title id="title">Calls from signing workflows to key services</title>
   <desc id="desc">The Device Key’s FIDO path uses FidoClient’s internal authenticator and the OS key service. The external Passkey path uses PasskeyService and FidoClient. Both paths share FIDO request and response handling. Core converts the authenticator response to the SSH signature format.</desc>
-  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#576d68"/></marker></defs>
-  <style>text{font-family:'Segoe UI',sans-serif;fill:#183c35;font-size:17px}.heading{font-size:21px;font-weight:650}.code{font-size:17px}.small{font-size:15px;fill:#526b65}.box{fill:#fff;stroke:#bdcdc5;stroke-width:1.5}.shared{fill:#e0eee6;stroke:#88ad99;stroke-width:1.5}.execution{fill:#fbf4e6;stroke:#c8ae78;stroke-width:1.5}.line{fill:none;stroke:#576d68;stroke-width:2;marker-end:url(#arrow)}</style>
-  <rect width="1160" height="1060" rx="12" fill="#f6f8f7"/>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#315e73"/></marker></defs>
+  <style>text{font-family:'Segoe UI',sans-serif;fill:#102c3b;font-size:17px}.heading{font-size:21px;font-weight:650}.code{font-size:17px}.small{font-size:15px;fill:#5f7885}.box{fill:#fff;stroke:#cad8de;stroke-width:1.5}.shared{fill:#dce9ee;stroke:#91b4c5;stroke-width:1.5}.execution{fill:#f5dfb9;stroke:#d3a354;stroke-width:1.5}.line{fill:none;stroke:#315e73;stroke-width:2;marker-end:url(#arrow)}</style>
+  <rect width="1160" height="1060" rx="12" fill="#f7fafb"/>
   <text x="30" y="36" class="small">KeyringdAgentRequestHandler → KeyringdApplication → selected identity</text>
   <rect x="30" y="65" width="725" height="85" rx="10" class="execution"/>
   <text x="392" y="99" text-anchor="middle" class="heading">SignWithDeviceKeyExecution</text>

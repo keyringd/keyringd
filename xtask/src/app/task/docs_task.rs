@@ -1,9 +1,11 @@
 use crate::core::{model::Workspace, service::documentation};
 use clap::Subcommand;
 
+use super::PromoVideoTask;
+
 #[derive(Subcommand)]
 pub(crate) enum DocsTask {
-    /// Generates static HTML in website/target/roq.
+    /// Generates static HTML in website/build/roq.
     Build {
         /// URL prefix for the generated website; defaults to the domain root.
         #[arg(long, default_value = "/", value_parser = parse_base_path)]
@@ -13,6 +15,11 @@ pub(crate) enum DocsTask {
     Dev {
         #[arg(long, default_value_t = 8080, value_parser = clap::value_parser!(u16).range(1..))]
         port: u16,
+    },
+    /// Builds documentation-site media.
+    Pv {
+        #[command(subcommand)]
+        task: PromoVideoTask,
     },
 }
 
@@ -33,6 +40,7 @@ impl DocsTask {
         match self {
             Self::Build { base_path } => documentation::build_website(workspace, &base_path),
             Self::Dev { port } => documentation::serve_website(workspace, port),
+            Self::Pv { task } => task.exec(workspace),
         }
     }
 }
@@ -44,8 +52,8 @@ mod tests {
 
     keyringd_testkit::scenario! {
         group "parse" {
-            case "Accepts docs build and dev options" {
-                verify "parse the documentation commands with their respective base path and port" {
+            case "Accepts docs build, dev and promo-video options" {
+                verify "parse the documentation commands with their respective options" {
                     let build = parse(["xtask", "docs", "build", "--base-path", "/keyringd"]).unwrap();
                     let TaskCommand::Docs {
                         task: DocsTask::Build { base_path },
@@ -60,6 +68,16 @@ mod tests {
                         dev,
                         TaskCommand::Docs {
                             task: DocsTask::Dev { port: 8081 }
+                        }
+                    ));
+
+                    let promo_video = parse(["xtask", "docs", "pv", "build"]).unwrap();
+                    assert!(matches!(
+                        promo_video,
+                        TaskCommand::Docs {
+                            task: DocsTask::Pv {
+                                task: super::super::PromoVideoTask::Build
+                            }
                         }
                     ));
                 }

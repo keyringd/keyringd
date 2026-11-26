@@ -11,6 +11,7 @@ A development CLI for building applications, running tests, generating reports, 
 | Test shared packages and generate an HTML report | `cargo xtask test-with-report` |
 | Run Cargo tests and the current OS's system tests | `cargo xtask host-tests-with-report` |
 | Preview the documentation website | `cargo xtask docs dev` |
+| Build the documentation promo video | `cargo xtask docs pv build` |
 | Update the shared version | `cargo xtask set-version 0.6.4` |
 | Advance to the next patch version | `cargo xtask bump-version` |
 
@@ -158,7 +159,7 @@ cargo xtask test-report results reports --source-base-url https://github.com/OWN
 
 ## Preview or build the documentation website
 
-JDK 21 or newer is required. These commands use the Maven Wrapper in `website/`:
+JDK 21 or newer is required. These commands use the Gradle Wrapper in `website/`:
 
 ```sh
 cargo xtask docs dev
@@ -167,7 +168,15 @@ cargo xtask docs build
 cargo xtask docs build --base-path /keyringd
 ```
 
-`dev` starts a development server on port 8080 by default. `build` generates static HTML in `website/target/roq/`. The default `--base-path` is `/`. See [website](../website/README.adoc) for site content and configuration.
+`dev` starts a development server on port 8080 by default. `build` generates static HTML in `website/build/roq/`. The default `--base-path` is `/`. See [website](../website/README.adoc) for site content and configuration.
+
+Build and publish the 60-second introduction video with Google Chrome:
+
+```sh
+cargo xtask docs pv build
+```
+
+The renderer verifies the duration, dimensions, and frame count before replacing the committed MP4 and poster under `website/public/media/`. Intermediate video, contact-sheet, verification, and Chrome-profile files remain under `website/target/promo-video/`. Set `CHROME_PATH` when Chrome is not installed in its standard location.
 
 ## Create distribution packages
 

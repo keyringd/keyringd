@@ -4,15 +4,27 @@ This directory owns the Roq site, AsciiDoc user documentation, Qute layouts and 
 
 == Build and preview
 
-Install JDK 21 or newer and Rust. Maven is downloaded by the checked-in Maven Wrapper; its version is fixed in `.mvn/wrapper/maven-wrapper.properties`. Run from the repository root:
+Install JDK 21 or newer and Rust. Gradle is downloaded by the checked-in Gradle Wrapper; its version is fixed in `gradle/wrapper/gradle-wrapper.properties`. Run from the repository root:
 
 [source,sh]
 ----
 cargo xtask docs build
 cargo xtask docs dev
+cargo xtask docs pv build
 ----
 
-Static output is `website/target/roq/`. Build clears the Maven target directory first so deleted pages do not survive. Dev mode serves http://localhost:8080 with live reload; use `--port 8081` to choose another port and Ctrl-C to stop it.
+Static output is `website/build/roq/`. Build clears the Gradle build directory first so deleted pages do not survive. Dev mode serves http://localhost:8080 with live reload; use `--port 8081` to choose another port and Ctrl-C to stop it.
+
+== Promo video
+
+The editable source for the 60-second introduction is under `tools/promo-video/`. It draws each frame with HTML Canvas and uses Chrome's WebCodecs encoder to produce the H.264 MP4. Install Google Chrome, then run from the repository root:
+
+[source,sh]
+----
+cargo xtask docs pv build
+----
+
+The command renders into `target/promo-video/`, verifies a 60-second 1280 x 720 video with 1,440 frames, and only then updates `public/media/keyringd-in-60-seconds.mp4`, its poster, and the cache identifier in the video page. Set `CHROME_PATH` when Chrome is not installed in its standard location. Commit the generator sources, illustration assets, published MP4, poster, and updated video page together. Do not commit files under `target/promo-video/`.
 
 The production site is https://keyringd.com/ at the domain root:
 
@@ -27,7 +39,7 @@ The Pages workflow uses that same command. Configure repository Settings → Pag
 
 Write documentation in `.adoc` files under `content/`. Roq reads the AsciiDoc title and `description` attribute as metadata. Use the `docs` layout for documents and `base` for the landing page.
 
-Keep the documentation index and main pages in `content/`: Documentation, Getting started, Installation, Usage, How it works, FAQ, Using Keyringd safely, Security Model, and Project. Put task-specific guides in `content/guides/`: Public key registration, Adding or replacing a computer, Git signing, and Troubleshooting.
+Keep the documentation index and main pages in `content/`: Documentation, Installation, Set up Keyringd, Usage, How it works, FAQ, Using Keyringd safely, Security Model, and Project. Put task-specific guides in `content/guides/`: Public key registration, Adding or replacing a computer, Git signing, and Troubleshooting.
 
 Use `link:{site-path}usage/[label]` for site links in AsciiDoc and `site.url.resolve('usage/')` in Qute. Production links resolve from the domain root. Qute evaluation is disabled in AsciiDoc so shell examples remain literal. Keep shared include files in directories beginning with `_`, so Roq does not publish them as pages.
 
@@ -39,7 +51,7 @@ Developer architecture walkthroughs live under `content/internal/`, separate fro
 
 The shared `base` layout uses Roq's built-in `{#seo page site /}` tag for titles, descriptions, canonical URLs, Open Graph and Twitter cards. The index title is the site name (`Keyringd`); document titles and descriptions come from their AsciiDoc metadata.
 
-The layout's `image: social-card.png` is inherited by all pages and resolves under `public/images/`. Override `image` in a page's metadata to use a page-specific card. The shared card is `public/images/social-card.png` (1200 × 630); its editable vector source is `assets/social-card.svg`. After editing the SVG, export it to that PNG at the same dimensions. Commit both files; no image-rendering dependency is needed to build the site.
+The layout's `image: social-card.png` is inherited by all pages and resolves under `public/images/`. Override `image` in a page's metadata to use a page-specific card. The shared card is `public/images/social-card.png` (1280 × 640), sized for both general Open Graph previews and GitHub's Social preview; its editable vector source is `assets/social-card.svg`. Keep important content inside the card's inset safe area. After editing the SVG, export it to that PNG at the same dimensions. Commit both files; no image-rendering dependency is needed to build the site.
 
 When checking production output, verify that `og:url`, `og:image`, and the canonical URL use `https://keyringd.com/` without a repository path prefix.
 
@@ -51,7 +63,7 @@ Write from the current implementation and the reader's task, rather than copying
 |===
 |Page |Purpose
 |Documentation |Index of user documentation with a short description of each page
-|Getting started |One Profile, one destination, one working connection
+|Set up Keyringd |One Profile, one destination, one working connection
 |How it works |Passkey authorization, local signing, and certificate trust
 |FAQ |Short answers to common questions, with links to detailed explanations and guides
 |Installation |Platform requirements and client agent configuration

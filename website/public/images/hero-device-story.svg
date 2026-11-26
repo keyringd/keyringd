@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="520" viewBox="0 0 600 520" role="img" aria-labelledby="title description">
+  <title id="title">A passkey certifies a fresh hardware key for a replacement computer</title>
+  <desc id="description">The current and new computers each keep their own hardware-bound device key and SSH certificate. A passkey certifies the new computer's certificate once. Both computers connect directly to an SSH server that keeps trusting the passkey public key as its SSH certificate authority.</desc>
+  <style>
+    text { font-family: "Segoe UI Variable", "Aptos", "Segoe UI", system-ui, sans-serif; }
+    .label { font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+    .micro { font-size: 10px; font-weight: 700; letter-spacing: .09em; }
+    .note { font-size: 11px; font-weight: 500; }
+    .route { animation: hero-route-flow 3.2s linear infinite; }
+    .stamp { transform-box: fill-box; transform-origin: center; animation: hero-stamp 3.8s ease-in-out infinite; }
+    @keyframes hero-route-flow { to { stroke-dashoffset: -24; } }
+    @keyframes hero-stamp {
+      0%, 18%, 100% { transform: translateY(-8px); }
+      34%, 58% { transform: translateY(4px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .route, .stamp { animation: none; }
+    }
+  </style>
+  <defs>
+    <filter id="hero-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#04141d" flood-opacity=".28"/>
+    </filter>
+    <marker id="hero-arrow-steel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0l10 5-10 5Z" fill="#91b4c5"/>
+    </marker>
+    <clipPath id="hero-frame"><rect x="2" y="2" width="596" height="516" rx="30"/></clipPath>
+  </defs>
+  <g clip-path="url(#hero-frame)">
+    <g transform="translate(34 48)">
+      <text x="82" y="0" text-anchor="middle" class="label" fill="#dce9ee">Current computer</text>
+      <g transform="translate(0 15)">
+        <rect width="164" height="123" rx="14" fill="#0d2f43" fill-opacity=".78" stroke="#91b4c5" stroke-width="1.5"/>
+        <circle cx="82" cy="10" r="2.4" fill="#91b4c5"/>
+        <rect x="10" y="17" width="144" height="90" rx="8" fill="#102c3b" stroke="#315e73"/>
+        <g transform="translate(29 39)">
+          <rect width="55" height="45" rx="9" fill="#1c4b61" stroke="#91b4c5"/>
+          <path d="M-5 9h5m-5 9h5m-5 9h5m-5 9h5M55 9h5m-5 9h5m-5 9h5m-5 9h5" stroke="#91b4c5" stroke-width="2"/>
+          <circle cx="22" cy="18" r="8" fill="none" stroke="#dce9ee" stroke-width="2.4"/>
+          <path d="M30 18h16m-6 0v6m-6-6v5" stroke="#dce9ee" stroke-width="2.4" stroke-linecap="round"/>
+          <text x="27.5" y="41" text-anchor="middle" class="micro" fill="#dce9ee" style="font-size:9px;letter-spacing:0">TPM / SE</text>
+        </g>
+        <g transform="translate(95 30)">
+          <path d="M5 0h29l12 12v47q0 5-5 5H5q-5 0-5-5V5q0-5 5-5Z" fill="#edf3f5" stroke="#91b4c5"/>
+          <path d="M34 0v12h12Z" fill="#dce9ee" stroke="#91b4c5" stroke-linejoin="round"/>
+          <text x="7" y="13" class="micro" fill="#294959" style="font-size:6px">SSH CERT</text>
+          <path d="M7 22h30M7 29h25M7 36h18" stroke="#cad8de" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="28" cy="50" r="11" fill="#d3a354" opacity=".2"/>
+          <circle cx="28" cy="50" r="8.5" fill="none" stroke="#b88839" stroke-width="1.2" stroke-dasharray="2 2"/>
+          <path d="m24 50 3 3 6-7" fill="none" stroke="#8b662b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <path d="M0 123h164l-12 11H12Z" fill="#1c4b61" stroke="#91b4c5" stroke-width="1.5"/>
+        <path d="M64 128h36" stroke="#91b4c5" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <text x="82" y="173" text-anchor="middle" class="micro" fill="#91b4c5">DEVICE KEY</text>
+    </g>
+
+    <g transform="translate(34 313)">
+      <text x="82" y="0" text-anchor="middle" class="label" fill="#fff">New computer</text>
+      <g transform="translate(0 15)" filter="url(#hero-shadow)">
+        <rect width="164" height="123" rx="14" fill="#0d2f43" fill-opacity=".78" stroke="#91b4c5" stroke-width="1.5"/>
+        <circle cx="82" cy="10" r="2.4" fill="#91b4c5"/>
+        <rect x="10" y="17" width="144" height="90" rx="8" fill="#102c3b" stroke="#315e73"/>
+        <g transform="translate(29 39)">
+          <rect width="55" height="45" rx="9" fill="#5d4826" stroke="#d3a354"/>
+          <path d="M-5 9h5m-5 9h5m-5 9h5m-5 9h5M55 9h5m-5 9h5m-5 9h5m-5 9h5" stroke="#d3a354" stroke-width="2"/>
+          <circle cx="22" cy="18" r="8" fill="none" stroke="#f5dfb9" stroke-width="2.4"/>
+          <path d="M30 18h16m-6 0v6m-6-6v5" stroke="#f5dfb9" stroke-width="2.4" stroke-linecap="round"/>
+          <text x="27.5" y="41" text-anchor="middle" class="micro" fill="#f5dfb9" style="font-size:9px;letter-spacing:0">TPM / SE</text>
+        </g>
+        <g transform="translate(95 30)">
+          <path d="M5 0h29l12 12v47q0 5-5 5H5q-5 0-5-5V5q0-5 5-5Z" fill="#edf3f5" stroke="#91b4c5"/>
+          <path d="M34 0v12h12Z" fill="#dce9ee" stroke="#91b4c5" stroke-linejoin="round"/>
+          <text x="7" y="13" class="micro" fill="#294959" style="font-size:6px">SSH CERT</text>
+          <path d="M7 22h30M7 29h25M7 36h18" stroke="#cad8de" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="28" cy="50" r="11" fill="#d3a354" opacity=".2"/>
+          <circle cx="28" cy="50" r="8.5" fill="none" stroke="#b88839" stroke-width="1.2" stroke-dasharray="2 2"/>
+          <path d="m24 50 3 3 6-7" fill="none" stroke="#8b662b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <path d="M0 123h164l-12 11H12Z" fill="#1c4b61" stroke="#91b4c5" stroke-width="1.5"/>
+        <path d="M64 128h36" stroke="#91b4c5" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <text x="82" y="173" text-anchor="middle" class="micro" fill="#d3a354">NEW DEVICE KEY</text>
+    </g>
+
+    <g transform="translate(187 257)">
+      <ellipse cx="70" cy="86" rx="38" ry="7" fill="#04141d" opacity=".18"/>
+      <g class="stamp">
+        <path d="M45 12c-3-10 5-20 16-20h19c11 0 19 10 16 20l-8 27H53Z" fill="#91b4c5"/>
+        <circle cx="70" cy="5" r="7" fill="none" stroke="#0d2f43" stroke-width="3"/>
+        <path d="M50 39h40l10 19H40Z" fill="#5d8091"/>
+        <rect x="32" y="56" width="76" height="22" rx="7" fill="#dce9ee" stroke="#91b4c5"/>
+        <text x="70" y="71" text-anchor="middle" class="micro" fill="#102c3b">PASSKEY</text>
+      </g>
+    </g>
+    <text x="293" y="288" text-anchor="start" class="micro" fill="#91b4c5">CERTIFIES ONCE</text>
+    <path d="M223 333C212 342 197 365 181 385" fill="none" stroke="#91b4c5" stroke-width="1.5" stroke-dasharray="3 5" marker-end="url(#hero-arrow-steel)"/>
+
+    <path class="route" d="M198 125C288 125 342 182 400 198" fill="none" stroke="#91b4c5" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 8" marker-end="url(#hero-arrow-steel)" opacity=".65"/>
+    <path class="route" d="M198 390C288 390 342 358 400 342" fill="none" stroke="#91b4c5" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 8" marker-end="url(#hero-arrow-steel)"/>
+
+    <g transform="translate(400 180)">
+      <text x="84" y="0" text-anchor="middle" class="label" fill="#dce9ee">SSH server</text>
+      <g transform="translate(0 16)">
+        <rect width="168" height="148" rx="16" fill="#0d2f43" fill-opacity=".78" stroke="#91b4c5" stroke-width="1.5"/>
+        <g transform="translate(18 19)">
+          <rect width="132" height="26" rx="6" fill="#102c3b" stroke="#315e73"/>
+          <circle cx="14" cy="13" r="3" fill="#91b4c5"/>
+          <path d="M28 10h88M28 16h66" stroke="#315e73" stroke-width="2" stroke-linecap="round"/>
+          <rect y="36" width="132" height="26" rx="6" fill="#102c3b" stroke="#315e73"/>
+          <circle cx="14" cy="49" r="3" fill="#91b4c5"/>
+          <path d="M28 46h88M28 52h66" stroke="#315e73" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g transform="translate(19 99)">
+          <circle cx="12" cy="12" r="12" fill="#d3a354" opacity=".18"/>
+          <path d="m7 12 4 4 7-9" fill="none" stroke="#d3a354" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="32" y="3" class="micro" fill="#d3a354">PASSKEY</text>
+          <text x="32" y="15" class="micro" fill="#d3a354">PUBLIC KEY</text>
+          <text x="32" y="29" class="note" fill="#dce9ee">trusted as SSH CA</text>
+        </g>
+      </g>
+    </g>
+
+    <g transform="translate(476 450)">
+      <text x="0" y="0" text-anchor="middle" class="note" fill="#bdd3dc" style="font-size:15px">New computer. New device key.</text>
+      <text x="0" y="30" text-anchor="middle" class="label" fill="#fff" style="font-size:20px">Same server setup.</text>
+    </g>
+  </g>
+</svg>
