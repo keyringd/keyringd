@@ -17,6 +17,8 @@ mod macos_tools;
 pub(super) use macos_tools::MacosTools;
 pub(super) mod package_files;
 pub(super) mod process;
+mod promo_video;
+pub(super) use promo_video::PromoVideoRenderer;
 mod report_session;
 pub(super) use report_session::ReportSession;
 pub(super) mod test_report;

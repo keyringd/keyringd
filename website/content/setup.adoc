@@ -1,32 +1,21 @@
-= Getting started
-:description: Create a hardware-protected SSH identity, choose how your server trusts it, and make your first connection.
+= Set up Keyringd
+:description: Create your first hardware-protected SSH identity, register it with a server, and make a connection.
 :toc:
 :toclevels: 2
 :sectanchors:
 :notitle:
 
-Set up Keyringd, register a public key or certificate authority on your server, and make your first SSH connection.
+After installing Keyringd, create a Profile, register its public key or certificate authority on your server, and make your first SSH connection.
 
 == What you need
 
-* A Linux or Windows computer with a usable TPM 2.0, or a Mac with Secure Enclave. See link:{site-path}installation/[platform requirements] before installing.
+* Keyringd installed and connected to your SSH client as described in link:{site-path}installation/[Installation].
 * An Android device running Android 14 or later, an iPhone running iOS 16 or later, or a FIDO2 certified security key.
 * An SSH destination where you can register a public key or authorize an SSH certificate authority.
 
 Using a phone passkey requires Bluetooth Low Energy (BLE) support and network access on both the computer and the phone.
 
-== 1. Install and select the agent
-
-Follow the link:{site-path}installation/[installation guide] for your platform, then launch the app.
-
-* *Linux:* choose *Configure SSH Clients… → Configure*.
-* *Windows:* choose *Configure SSH Clients… → SSH_AUTH_SOCK: Configure*.
-* *macOS:* choose *Configure SSH Clients… → Configure* to make Keyringd the default. To use Keyringd for just one command, see the dedicated socket example in link:{site-path}installation/#_macos[Installation].
-* *WSL2:* use the Windows app for Profiles and key prompts; configure the proxy socket inside WSL as shown in the installation guide.
-
-This selects Keyringd for your client. It does not grant access to a server.
-
-== 2. Create a Profile
+== 1. Create a Profile
 
 . Add a Profile and give it a name you will recognize, such as `Personal` or `Work`.
 . Choose *Create a new passkey*.
@@ -40,6 +29,28 @@ For a security key, connect it to your computer and follow the prompts to enter 
 If you already created a passkey on another computer, choose *Use an existing passkey* instead. See link:{site-path}guides/adding-or-replacing-a-computer/[adding another computer].
 
 Keep the default *Advanced settings* for your first connection. See link:{site-path}guides/public-key-registration/#_key_and_signature_formats[Key and signature formats] if you need to change the SSH authentication signature format.
+
+On Ubuntu or Fedora, if Keyringd reports that it cannot access the TPM, choose *Grant TPM access…* and authorize adding your account to the group that controls `/dev/tpmrm0`, then sign out and back in before starting Profile creation again. If the button is unavailable after a manual installation, follow the manual-installation instructions for your distribution in link:{site-path}installation/[Installation].
+
+== 2. Verify the Profile through the agent
+
+Open a new terminal after applying the SSH client configuration from Installation, then run:
+
+[source,sh]
+----
+ssh-add -L
+----
+
+The output should include the Profile's Device Certificate, Device Key, and passkey public key. Run the command inside Git Bash or WSL when checking that environment's configuration.
+
+On macOS, if you kept the system agent as the default, address Keyringd's private socket for this command:
+
+[source,sh]
+----
+SSH_AUTH_SOCK="$HOME/Library/Application Support/keyringd/agent.sock" ssh-add -L
+----
+
+If the agent cannot be reached or the Profile's identities are missing, follow link:{site-path}guides/troubleshooting/#_the_intended_key_is_missing[The intended key is missing].
 
 == 3. Register your public key on the server
 

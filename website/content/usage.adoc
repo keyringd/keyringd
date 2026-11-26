@@ -5,7 +5,7 @@
 :sectanchors:
 :notitle:
 
-After completing link:{site-path}getting-started/[Getting started], use your usual SSH commands. Keyringd provides the keys and signs authentication requests through the agent.
+After completing link:{site-path}setup/[Set up Keyringd], use your usual SSH commands. Keyringd provides the keys and signs authentication requests through the agent.
 
 == Automatic startup
 
@@ -71,9 +71,12 @@ By default, connections using a Device Certificate or the Device Key's public ke
 |WSL2 |Use the Windows app |Apply the Windows Device Key settings
 |===
 
+[WARNING]
+====
 After enabling or disabling local authentication, Keyringd opens *Public Keys…* if server registrations need updating, with an explanation of the changes. On Linux with ECDSA signatures, the key and registration stay the same, so this window does not open. Changing the setting in Keyringd does not change what your server requires.
 
 For SK signatures, the updated entries require user verification when local authentication is enabled (`verify-required`) and allow signing without user presence when it is disabled (`no-touch-required`). Replace the existing registration with the updated *Certificate Authority Public Key* entry for certificate authentication, or the updated *Device Key Public Key* entry for public-key authentication. A server that still requires presence or verification will reject the Device Key after local authentication is disabled.
+====
 
 The CA entry's verification requirement applies to all Device Certificates accepted through that entry, including certificates for other computers using the same passkey.
 

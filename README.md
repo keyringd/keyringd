@@ -12,7 +12,7 @@ Instead of transferring the private key, Keyringd uses your passkey as an SSH ce
 
 For everyday SSH, your Device Key does the work—without asking for your passkey each time.
 
-[Documentation](https://keyringd.com/) · [Getting started](https://keyringd.com/getting-started/) · [Releases](https://github.com/keyringd/keyringd/releases) · [Issues](https://github.com/keyringd/keyringd/issues)
+[Documentation](https://keyringd.com/) · [Installation](https://keyringd.com/installation/) · [Set up Keyringd](https://keyringd.com/setup/) · [Releases](https://github.com/keyringd/keyringd/releases) · [Issues](https://github.com/keyringd/keyringd/issues)
 
 ## Features
 
@@ -44,7 +44,7 @@ See [Installation](https://keyringd.com/installation/) for full platform and aut
 3. Register the CA public key or direct public keys required by your destination.
 4. Connect with your usual SSH client.
 
-The [Getting started guide](https://keyringd.com/getting-started/) walks through one working connection. [Public key registration](https://keyringd.com/guides/public-key-registration/) explains the destination-specific choices. [Usage](https://keyringd.com/usage/) covers Profile management, and [Git signing](https://keyringd.com/guides/git-signing/) covers signing and verification.
+The [installation guide](https://keyringd.com/installation/) installs Keyringd and connects the SSH client to its agent. [Set up Keyringd](https://keyringd.com/setup/) then walks through one working connection. [Public key registration](https://keyringd.com/guides/public-key-registration/) explains the destination-specific choices. [Usage](https://keyringd.com/usage/) covers Profile management, and [Git signing](https://keyringd.com/guides/git-signing/) covers signing and verification.
 
 Hardware protection prevents private-key extraction; access to the agent can still permit signing. Read the [Security Model](https://keyringd.com/security-model/) for local authentication, forwarded agents, Passkey authority, and revocation.
 

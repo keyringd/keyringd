@@ -119,4 +119,7 @@ Include the operating system and app version, the phone or security key used, th
 |macOS source build |Process output
 |===
 
+[WARNING]
+====
 See https://github.com/keyringd/keyringd/blob/master/docs/internal/DEVELOPMENT.md#logging[Logging] before enabling detailed logs. Review logs and captures before attaching them to a https://github.com/keyringd/keyringd/issues[GitHub Issue]; wire traces can contain sensitive data, including PINs or QR secrets.
+====

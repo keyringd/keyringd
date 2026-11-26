@@ -7,44 +7,33 @@
 
 Download the package for your operating system from https://github.com/keyringd/keyringd/releases[GitHub Releases], then follow the installation and SSH client setup steps below.
 
+Complete this page before creating a Profile. Installation ends when Keyringd is running and your SSH client is configured to reach its agent; Profile creation and identity checks begin in link:{site-path}setup/[Set up Keyringd].
+
 == Platform requirements
 
 [options="header",cols="1,3"]
 |===
 |Platform |Requirements
-|Linux desktop |A usable TPM 2.0 and a desktop session with systemd user services
 |Windows |Windows 11 version 23H2 or later with a usable TPM 2.0
-|WSL2 |Windows meeting the requirements above, and a WSL distribution with systemd user services and Windows interoperability enabled
 |macOS |macOS 13 or later on a Mac with Apple silicon
+|Ubuntu |A usable TPM 2.0 and a desktop session with systemd user services
+|Fedora |A usable TPM 2.0 and a desktop session with systemd user services
+|WSL2 |Windows meeting the requirements above, and a WSL distribution with systemd user services and Windows interoperability enabled
 |===
 
-You also need an OpenSSH client. For your passkey, use an Android device running Android 14 or later, an iPhone running iOS 16 or later, or a FIDO2 certified security key.
+You also need an OpenSSH client.
 
-Using a phone passkey requires Bluetooth Low Energy (BLE) support and network access on both the computer and the phone.
-
-== Linux desktop
+[.installation-platform.platform-ubuntu]
+== Ubuntu
 
 === 1. Install the package
 
-Install the downloaded deb or rpm using your distribution's package manager. Replace the example filename with the package you downloaded.
-
-For Debian or Ubuntu:
+Install the downloaded DEB using your package manager. Replace the example filename with the package you downloaded.
 
 [source,sh]
 ----
 sudo apt install ./keyringd_VERSION-RELEASE_amd64.deb
 ----
-
-For Fedora or another RPM-based distribution:
-
-[source,sh]
-----
-sudo dnf install ./keyringd-VERSION-RELEASE.x86_64.rpm
-----
-
-If Profiles reports that you need TPM access, choose *Grant TPM access…*.
-On systems where the `tss` group controls access to `/dev/tpmrm0`, an administrator can authorize adding your account to that group.
-Sign out and back in to apply the change.
 
 === 2. Configure SSH_AUTH_SOCK
 
@@ -70,8 +59,7 @@ To remove the setting and both drop-ins, choose *Configure SSH Clients… → Un
 
 === Enable the TPM access button for a manual installation
 
-If you installed Keyringd without a DEB or RPM, install the Polkit and account management tools first.
-The packages are `pkexec` and `passwd` on Debian or Ubuntu, and `polkit` and `shadow-utils` on Fedora.
+This is only needed when Profile creation reports missing TPM access and you installed Keyringd without a DEB. Install the `pkexec` and `passwd` packages first.
 
 From the Keyringd source checkout that matches your installed binary, run:
 
@@ -86,8 +74,62 @@ sudo install -D -o root -g root -m 0644 \
     /usr/share/polkit-1/actions/com.keyringd.grant-tpm-access.policy
 ----
 
-Reopen Profiles to check TPM access. The button requires a desktop session with a Polkit authentication agent.
+Return to link:{site-path}setup/[Set up Keyringd] and start Profile creation again. The button requires a desktop session with a Polkit authentication agent.
 
+[.installation-platform.platform-fedora]
+== Fedora
+
+=== 1. Install the package
+
+Install the downloaded RPM using your package manager. Replace the example filename with the package you downloaded.
+
+[source,sh]
+----
+sudo dnf install ./keyringd-VERSION-RELEASE.x86_64.rpm
+----
+
+=== 2. Configure SSH_AUTH_SOCK
+
+Open Keyringd from the application menu and choose *Configure SSH Clients… → Configure*. This saves the following in `~/.config/environment.d/60-keyringd.conf` (or under `XDG_CONFIG_HOME` if you have set it):
+
+[source,sh]
+----
+SSH_AUTH_SOCK=${XDG_RUNTIME_DIR}/keyringd-agent.sock
+----
+
+Configure also adds two systemd user drop-ins so that GCR and OpenSSH leave this setting in place:
+
+* `~/.config/systemd/user/gcr-ssh-agent.socket.d/60-keyringd.conf`
+* `~/.config/systemd/user/ssh-agent.socket.d/60-keyringd.conf`
+
+If `XDG_CONFIG_HOME` is set to an absolute path, both drop-ins are written under that directory in place of `~/.config`.
+
+Sign out and back in to apply the setting to desktop applications and terminals. SSH and Git can then use the same agent.
+
+The package uses systemd user socket activation to start Keyringd when an SSH client connects. After setup, you do not need to launch the app before each SSH connection.
+
+To remove the setting and both drop-ins, choose *Configure SSH Clients… → Unconfigure*, then sign out and back in. The packaged agent remains available through socket activation.
+
+=== Enable the TPM access button for a manual installation
+
+This is only needed when Profile creation reports missing TPM access and you installed Keyringd without an RPM. Install the `polkit` and `shadow-utils` packages first.
+
+From the Keyringd source checkout that matches your installed binary, run:
+
+[source,sh]
+----
+rootfs=packaging/linux/rootfs
+sudo install -D -o root -g root -m 0755 \
+    "$rootfs/usr/libexec/keyringd/grant-tpm-access" \
+    /usr/libexec/keyringd/grant-tpm-access
+sudo install -D -o root -g root -m 0644 \
+    "$rootfs/usr/share/polkit-1/actions/com.keyringd.grant-tpm-access.policy" \
+    /usr/share/polkit-1/actions/com.keyringd.grant-tpm-access.policy
+----
+
+Return to link:{site-path}setup/[Set up Keyringd] and start Profile creation again. The button requires a desktop session with a Polkit authentication agent.
+
+[.installation-platform.platform-windows]
 == Windows
 
 === 1. Install the package
@@ -111,7 +153,7 @@ Git for Windows' bundled SSH client uses a different local connection from Windo
 export SSH_AUTH_SOCK="$(cygpath -u "$LOCALAPPDATA")/keyringd/agent.sock"
 ----
 
-Open a new Git Bash terminal and run `ssh-add -l` to check that the agent lists your Profile's keys. SSH and Git launched from that shell use the same setting. To remove it, delete the `SSH_AUTH_SOCK` line and reopen Git Bash.
+Open a new Git Bash terminal to apply the setting. SSH and Git launched from that shell use the same agent. To remove it, delete the `SSH_AUTH_SOCK` line and reopen Git Bash. After installation, link:{site-path}setup/[Set up Keyringd] verifies the Profile's identities from Git Bash.
 
 The copied setting only changes the Git Bash environment when you apply it. Windows OpenSSH launched from another terminal can continue using the Windows setting. If you launch Windows OpenSSH from this Git Bash shell, use the following option, replacing `<SID>` with the value shown by `whoami /user` in PowerShell: `-o 'IdentityAgent=\\\\.\pipe\keyringd-agent-<SID>'`.
 
@@ -121,6 +163,7 @@ To disable automatic startup, open Windows *Settings → Apps → Startup* and t
 
 If you disable automatic startup, launch Keyringd from the Start menu before using its agent with SSH or Git. See https://support.microsoft.com/en-US/Windows/Experience/Startup-Boot/configure-startup-applications-in-windows[Microsoft's startup application instructions].
 
+[.installation-platform.platform-wsl]
 == WSL2
 
 === 1. Check WSL prerequisites
@@ -206,6 +249,7 @@ Once configured, systemd starts the WSL proxy when an SSH client connects to its
 
 The WSL proxy exits after all connections close and it remains idle for 60 seconds. The next connection starts it again; this does not close the Windows app.
 
+[.installation-platform.platform-macos]
 == macOS
 
 === 1. Install the app
@@ -214,14 +258,7 @@ Extract the downloaded `keyringd-VERSION-arm64.app.zip`, move `keyringd.app` to 
 
 On first launch, Keyringd registers itself to start when you log in. Each user who wants to use Keyringd should open the app once. You can manage automatic startup in *System Settings → General → Login Items*. Keyringd runs in the menu bar and opens its own private socket.
 
-To try the running agent while keeping your current default agent, run:
-
-[source,sh]
-----
-SSH_AUTH_SOCK="$HOME/Library/Application Support/keyringd/agent.sock" ssh-add -L
-----
-
-An empty installation reports that the agent has no identities. Open *Profiles* from the menu bar to create a Profile.
+Keyringd's private agent socket is `$HOME/Library/Application Support/keyringd/agent.sock`. You can keep the system agent as the default and address this socket only when needed; link:{site-path}setup/[Set up Keyringd] shows how to verify a Profile through it.
 
 === 2. Make Keyringd the default SSH agent (optional)
 
@@ -243,7 +280,7 @@ To remove saved Profile data and the Configure selection, open *Go → Go to Fol
 
 == Next steps
 
-Continue with link:{site-path}getting-started/[Getting started] to create a Profile, register your public key on the server, and test the connection.
+Continue with link:{site-path}setup/[Set up Keyringd] to create a Profile, verify its identities, register its public key on the server, and test the connection.
 
 == Build from source
 

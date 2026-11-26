@@ -3,10 +3,11 @@ title: Keyringd
 description: Protect your SSH keys from theft, without sacrificing convenience. Hardware-backed SSH keys, certified by a passkey. Replace your computer without changing servers that trust your SSH CA.
 layout: base
 ---
-<section class="hero wrap">
-  <div class="hero-copy">
+<section class="hero-shell">
+  <div class="hero wrap">
+    <div class="hero-copy">
     <p class="eyebrow"><span class="status-dot"></span> HARDWARE-BACKED SSH KEYS, CERTIFIED BY A PASSKEY.</p>
-    <h1>Protect your SSH keys <span>from theft.</span></h1>
+    <h1><span class="hero-title-primary">Protect your SSH keys</span><span class="hero-title-accent">from theft.</span></h1>
     <p class="hero-subtitle">Not at the cost of convenience.</p>
     <div class="hero-lead">
       <p>Keyringd is an SSH agent that keeps your private keys in your computer’s hardware.</p>
@@ -15,54 +16,17 @@ layout: base
       <p>For everyday SSH, your device key does the work—without asking for your passkey each time.</p>
     </div>
     <div class="actions">
-      <a class="button primary" href="{site.url.resolve('getting-started/')}">Get started <span aria-hidden="true">→</span></a>
-      <a class="button secondary" href="#how-it-works">How it works <span aria-hidden="true">↓</span></a>
+      <a class="button secondary intro-video-button" href="{site.url.resolve('keyringd-in-60-seconds/')}">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 3v10l8-5z"/></svg>
+        Keyringd in 60 seconds
+      </a>
+      <a class="button primary" href="{site.url.resolve('installation/')}">Get started <span aria-hidden="true">→</span></a>
     </div>
+    </div>
+    <figure class="replacement-diagram" id="replacement-diagram">
+      <img class="replacement-map hero-device-story" src="{site.url.resolve('images/hero-device-story.svg')}" alt="The current and new computers each use their own hardware-bound device key and SSH certificate. A passkey certifies the new computer once, while the SSH server keeps trusting the same passkey public key as its certificate authority.">
+    </figure>
   </div>
-  <figure class="replacement-diagram" id="replacement-diagram">
-    <svg class="replacement-map" viewBox="0 0 480 455" role="img" aria-labelledby="replacement-title replacement-description">
-      <title id="replacement-title">New computer. New device key. Same server setup.</title>
-      <desc id="replacement-description">Your current computer and its replacement each have their own hardware-protected device key. Use the same passkey to certify the new device key. SSH servers that trust your passkey's CA keep the same configuration. The arrow between computers represents replacing the computer, not copying its private key.</desc>
-      <defs>
-        <g id="replacement-chip" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M18 2v8m14-8v8m14-8v8M18 54v8m14-8v8m14-8v8M2 18h8M2 32h8M2 46h8m44-28h8M54 32h8M54 46h8"/>
-          <rect x="10" y="10" width="44" height="44" rx="7"/>
-          <circle cx="26" cy="27" r="7"/><path d="M31 32 47 48M36 37l5-5m1 11 5-5"/>
-        </g>
-      </defs>
-
-      <path class="replacement-connection" d="M100 161V160Q100 147 113 147H197Q210 147 210 134V116M380 161V160Q380 147 367 147H283Q270 147 270 134V116"/>
-      <rect class="replacement-server" x="118" y="16" width="244" height="100" rx="12"/>
-      <g class="replacement-server-icon" transform="translate(143 38)"><rect width="30" height="13" rx="3"/><rect y="18" width="30" height="13" rx="3"/><path d="M7 6h2m5 0h9M7 24h2m5 0h9"/></g>
-      <text class="replacement-node-title" x="260" y="49">SSH servers</text>
-      <text class="replacement-detail" x="260" y="72">Trust your SSH CA</text>
-      <text class="replacement-unchanged" x="240" y="99">Same server setup</text>
-
-      <text class="replacement-device-title" x="100" y="181">Current computer</text>
-      <text class="replacement-device-title" x="380" y="181">New computer</text>
-      <rect class="replacement-screen" x="22" y="195" width="156" height="111" rx="9"/>
-      <rect class="replacement-screen replacement-new" x="302" y="195" width="156" height="111" rx="9"/>
-      <circle class="replacement-camera" cx="100" cy="204" r="2"/><circle class="replacement-camera" cx="380" cy="204" r="2"/>
-      <use href="#replacement-chip" class="replacement-old-key" x="68" y="221"/>
-      <use href="#replacement-chip" class="replacement-new-key" x="348" y="221"/>
-      <path class="replacement-base" d="M13 306H187L182 313Q180 317 174 317H26Q20 317 18 313Z"/>
-      <path class="replacement-base replacement-new-base" d="M293 306H467L462 313Q460 317 454 317H306Q300 317 298 313Z"/>
-      <path class="replacement-notch" d="M81 308h38m242 0h38"/>
-      <text class="replacement-key-label" x="100" y="341">Device key</text>
-      <text class="replacement-key-label replacement-new-label" x="380" y="341">New device key</text>
-
-      <text class="replacement-swap-label" x="240" y="228">REPLACE</text>
-      <path class="replacement-swap" d="M206 249H272m-13-13 13 13-13 13"/>
-      <text class="replacement-detail" x="240" y="284">No key to copy</text>
-
-      <path class="replacement-certifies" d="M100 353V370Q100 384 114 384H181M380 353V370Q380 384 366 384H299"/>
-      <rect class="replacement-passkey" x="147" y="365" width="186" height="70" rx="12"/>
-      <g class="replacement-passkey-icon" transform="translate(156 379)"><circle cx="10" cy="10" r="8"/><path d="M16 16 32 32M21 21l5-5m1 11 5-5"/></g>
-      <text class="replacement-node-title" x="257" y="393">Same passkey</text>
-      <text class="replacement-detail" x="240" y="423">Certifies the new device key</text>
-    </svg>
-    <figcaption class="replacement-caption">New computer. New device key.<br><strong>Same server setup.</strong></figcaption>
-  </figure>
 </section>
 <div class="platform-strip">
   <div class="wrap">
@@ -217,15 +181,16 @@ layout: base
     <p>Choose the setup supported by your SSH server or service.</p>
   </div>
   <div class="setup-cards">
-    <div class="setup-card">
-      <span class="pill">SSH CERTIFICATES</span>
-      <h3>For servers that support SSH certificates</h3>
+    <div class="setup-card setup-card-recommended">
+      <span class="recommended-ribbon"><span>RECOMMENDED</span></span>
+      <h3>SSH certificates</h3>
+      <p class="setup-card-fit">For servers that support SSH certificates</p>
       <p>Register your passkey’s CA public key once. Connect with certified device keys, and keep the same server registration when you add or replace a computer.</p>
       <a class="text-link" href="{site.url.resolve('guides/public-key-registration/')}#ca-trust">Set up certificate authentication →</a>
     </div>
     <div class="setup-card">
-      <span class="pill muted">PUBLIC KEYS</span>
-      <h3>For servers that do not support SSH certificates</h3>
+      <h3>Public keys</h3>
+      <p class="setup-card-fit">For servers that do not support SSH certificates</p>
       <p>Register both your device key’s public key and your passkey’s plain public key for direct authentication. Use the device key for everyday connections and your passkey after replacing your computer, until you register the new device key.</p>
       <a class="text-link" href="{site.url.resolve('guides/public-key-registration/')}#direct-keys">Register public keys →</a>
     </div>
@@ -247,5 +212,5 @@ layout: base
 <section class="closing wrap">
   <h2>Ready to set up Keyringd?</h2>
   <p>Follow the guide from installation to your first SSH connection.</p>
-  <a class="button primary" href="{site.url.resolve('getting-started/')}">Get started →</a>
+  <a class="button primary" href="{site.url.resolve('installation/')}">Get started →</a>
 </section>

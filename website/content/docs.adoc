@@ -3,13 +3,14 @@
 :sectanchors:
 :notitle:
 
-New to Keyringd? Start with link:{site-path}getting-started/[Getting started] to set up a Profile and make your first SSH connection.
+New to Keyringd? Start with link:{site-path}installation/[Installation], then link:{site-path}setup/[set up Keyringd] and make your first SSH connection.
 
 == Start here
 
-* link:{site-path}getting-started/[Getting started] — Set up one Profile, register a public key, and connect to a destination.
-* link:{site-path}how-it-works/[How it works] — Understand Passkeys, Device Keys, and certificate authentication.
+* link:{site-path}keyringd-in-60-seconds/[Keyringd in 60 seconds] — Watch how hardware-backed keys work when you replace your computer.
 * link:{site-path}installation/[Installation] — Install Keyringd and configure your SSH client on Windows, macOS, or Linux.
+* link:{site-path}setup/[Set up Keyringd] — Create one Profile, verify its identities, register a public key, and connect to a destination.
+* link:{site-path}how-it-works/[How it works] — Understand Passkeys, Device Keys, and certificate authentication.
 
 == Use your keys
 

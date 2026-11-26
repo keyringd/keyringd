@@ -44,7 +44,10 @@ If you sign Git commits, update your signing configuration and public-key regist
 
 == Retire a computer
 
+[IMPORTANT]
+====
 Creating a Profile on another computer with the same passkey does not revoke the existing Device Key or its certificate. You can keep using both computers for as long as needed.
+====
 
 Before handing over a computer, remove its Profiles in Keyringd or perform a clean installation of the OS. Also delete any backups or copies of the Profile data.
 
@@ -64,6 +67,6 @@ If your security key or passkey is lost or compromised, remove its public-key re
 * Remove *Certificate Authority Public Key* to stop accepting certificates signed by that passkey. This affects every computer using those certificates.
 * Remove *Passkey Public Key* if it was registered for direct SSH authentication.
 
-Create a Profile with a new passkey and register its public keys as described in link:{site-path}getting-started/[Getting started].
+Create a Profile with a new passkey and register its public keys as described in link:{site-path}setup/[Set up Keyringd].
 
 See link:{site-path}security-model/[Security Model] for the passkey's scope of authority.

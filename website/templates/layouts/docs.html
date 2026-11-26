@@ -3,12 +3,17 @@ layout: base
 ---
 <div class="docs-shell wrap">
   <aside class="docs-nav" aria-label="Documentation navigation">
-    <div class="docs-nav-links">
-      <p class="eyebrow">START HERE</p>
-      <a href="{site.url.resolve('getting-started/')}">Getting started</a>
-      <a href="{site.url.resolve('how-it-works/')}">How it works</a>
+    <button class="docs-nav-toggle" type="button" aria-expanded="false" aria-controls="docs-navigation">
+      <span>Browse documentation</span>
+      <span class="docs-nav-toggle-icon" aria-hidden="true"></span>
+    </button>
+    <div class="docs-nav-links" id="docs-navigation">
+      <p class="eyebrow">GETTING STARTED</p>
+      <a href="{site.url.resolve('keyringd-in-60-seconds/')}">Keyringd in 60 seconds</a>
       <a href="{site.url.resolve('installation/')}">Installation</a>
-      <p class="eyebrow nav-group">USE YOUR KEYS</p>
+      <a href="{site.url.resolve('setup/')}">Set up Keyringd</a>
+      <a href="{site.url.resolve('how-it-works/')}">How it works</a>
+      <p class="eyebrow nav-group">USING KEYRINGD</p>
       <a href="{site.url.resolve('guides/public-key-registration/')}">Public key registration</a>
       <a href="{site.url.resolve('usage/')}">Usage</a>
       <a href="{site.url.resolve('guides/adding-or-replacing-a-computer/')}">Adding or replacing a computer</a>

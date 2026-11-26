@@ -1,94 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
   <title>Keyringd — Protect your SSH keys from theft.</title>
-  <desc>Hardware-backed SSH keys. Not at the cost of convenience. Replace your computer with a new device key and keep the same server setup.</desc>
-  <style>text{font-family:Segoe UI,Arial,sans-serif;fill:#183a50}.replacement-map text{text-anchor:middle;fill:#183a50}
-.replacement-map .replacement-node-title{font-size:18px;font-weight:650;letter-spacing:-.3px}
-.replacement-map .replacement-detail{font-size:13px;fill:#5b6f7b}
-.replacement-map .replacement-device-title{font-size:16px;font-weight:600}
-.replacement-map .replacement-key-label{font-size:15px;font-weight:550}
-.replacement-map .replacement-unchanged{font-size:13px;fill:#41665c;font-weight:600}
-.replacement-server{fill:#f8f6f0;stroke:#bacac7;stroke-width:1.5}
-.replacement-server-icon{fill:none;stroke:#24577a;stroke-width:1.5}
-.replacement-connection{fill:none;stroke:#92abae;stroke-width:1.5}
-.replacement-screen{fill:#fbfaf6;stroke:#9bb0b7;stroke-width:2}
-.replacement-new{stroke:#b87559}
-.replacement-camera{fill:#a6b6bc}
-.replacement-old-key{color:#5b7c8c}
-.replacement-new-key{color:#ac5538}
-.replacement-base{fill:#d7e1e1;stroke:#9bb0b7;stroke-width:1.5}
-.replacement-new-base{fill:#e8cbb8;stroke:#b87559}
-.replacement-notch{fill:none;stroke:#8fa6ad;stroke-width:2;stroke-linecap:round}
-.replacement-map .replacement-new-label{fill:#9c4d33}
-.replacement-swap{fill:none;stroke:#24577a;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
-.replacement-map .replacement-swap-label{font-size:10px;font-weight:700;letter-spacing:1.6px;fill:#24577a}
-.replacement-certifies{fill:none;stroke:#b8826a;stroke-width:1.5;stroke-dasharray:4 5}
-.replacement-passkey{fill:#faf0e7;stroke:#c89b82;stroke-width:1.5}
-.replacement-passkey-icon{color:#a75239;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}</style>
-  <rect width="1200" height="630" fill="#f8f6f0"/>
-  <svg x="62" y="60" width="56" height="56" viewBox="0 0 256 256" aria-hidden="true">
-    <rect x="8" y="8" width="240" height="240" rx="54" fill="#183d52"/>
-    <g transform="translate(0 14)">
-      <circle cx="128" cy="66" r="45" fill="none" stroke="#91b4c5" stroke-width="12"/>
-      <g transform="rotate(24 94 100)" fill="#f4f0e8">
-        <path fill-rule="evenodd" d="M94 82a31 31 0 1 0 0 62 31 31 0 1 0 0-62ZM94 89a11 11 0 1 0 0 22 11 11 0 1 0 0-22Z"/>
-        <path d="M84 136h20v76l-10 11-10-11v-13H70v-14h14v-14H74v-14h10z"/>
-      </g>
-      <g transform="translate(68 0) rotate(-24 94 100)" fill="#d3a354">
-        <path fill-rule="evenodd" d="M82 83h24a18 18 0 0 1 18 18v23a18 18 0 0 1-18 18H82a18 18 0 0 1-18-18v-23a18 18 0 0 1 18-18ZM94 89a11 11 0 1 0 0 22 11 11 0 1 0 0-22Z"/>
-        <path d="M84 136h20v21h10v14h-10v14h14v14h-14v13l-10 11-10-11z"/>
-      </g>
-      <!-- The front arc starts inside each key's hole; the upper arc stays behind the key heads. -->
-      <path d="M94 95.479a45 45 0 0 0 68 0" fill="none" stroke="#91b4c5" stroke-width="12" stroke-linecap="round"/>
-    </g>
-  </svg>
+  <desc>Hardware-backed SSH keys, certified by a passkey. A new computer receives a new device key while the SSH server keeps the same setup.</desc>
+  <defs>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" fill="none" stroke="#315e73" stroke-width="1" opacity=".42"/>
+    </pattern>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#1c4b61" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#1c4b61" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
 
+  <rect width="1280" height="640" fill="#0d2f43"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <ellipse cx="900" cy="320" rx="410" ry="300" fill="url(#glow)"/>
+  <circle cx="1160" cy="34" r="300" fill="none" stroke="#91b4c5" stroke-width="1.5" opacity=".2"/>
+  <circle cx="1160" cy="34" r="214" fill="none" stroke="#91b4c5" stroke-width="1" opacity=".12"/>
 
-  <text x="135" y="100" font-size="32" font-weight="700" letter-spacing="-1">Keyringd</text>
-  <text x="64" y="222" font-size="62" font-weight="600" letter-spacing="-2">Protect your</text>
-  <text x="64" y="295" font-size="62" font-weight="600" letter-spacing="-2">SSH keys</text>
-  <text x="64" y="368" font-size="62" font-weight="600" letter-spacing="-2" style="fill:#24577a">from theft.</text>
-  <text x="66" y="465" font-size="25">Hardware-backed SSH keys.</text>
-  <text x="66" y="502" font-size="25">Not at the cost of convenience.</text>
-  <svg x="665" y="68" width="470" height="445" class="replacement-map" viewBox="0 0 480 455" role="img" aria-labelledby="replacement-title replacement-description">
-      <title id="replacement-title">New computer. New device key. Same server setup.</title>
-      <desc id="replacement-description">Your current computer and its replacement each have their own hardware-protected device key. Use the same passkey to certify the new device key. SSH servers that trust your passkey's CA keep the same configuration. The arrow between computers represents replacing the computer, not copying its private key.</desc>
-      <defs>
-        <g id="replacement-chip" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M18 2v8m14-8v8m14-8v8M18 54v8m14-8v8m14-8v8M2 18h8M2 32h8M2 46h8m44-28h8M54 32h8M54 46h8"/>
-          <rect x="10" y="10" width="44" height="44" rx="7"/>
-          <circle cx="26" cy="27" r="7"/><path d="M31 32 47 48M36 37l5-5m1 11 5-5"/>
-        </g>
-      </defs>
+  <image href="../public/logo-mark.svg" x="62" y="42" width="52" height="52"/>
+  <text x="124" y="79" fill="#fff" font-family="Segoe UI Variable, Aptos, Segoe UI, Arial, sans-serif" font-size="32" font-weight="750" letter-spacing="-1">Keyringd</text>
 
-      <path class="replacement-connection" d="M100 161V160Q100 147 113 147H197Q210 147 210 134V116M380 161V160Q380 147 367 147H283Q270 147 270 134V116"/>
-      <rect class="replacement-server" x="118" y="16" width="244" height="100" rx="12"/>
-      <g class="replacement-server-icon" transform="translate(143 38)"><rect width="30" height="13" rx="3"/><rect y="18" width="30" height="13" rx="3"/><path d="M7 6h2m5 0h9M7 24h2m5 0h9"/></g>
-      <text class="replacement-node-title" x="260" y="49">SSH servers</text>
-      <text class="replacement-detail" x="260" y="72">Trust your SSH CA</text>
-      <text class="replacement-unchanged" x="240" y="99">Same server setup</text>
+  <path d="M64 146h24" stroke="#d3a354" stroke-width="3" stroke-linecap="round"/>
+  <text x="104" y="152" fill="#e3b766" font-family="Segoe UI Variable, Aptos, Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="2.2">HARDWARE-BACKED SSH KEYS, CERTIFIED BY A PASSKEY</text>
 
-      <text class="replacement-device-title" x="100" y="181">Current computer</text>
-      <text class="replacement-device-title" x="380" y="181">New computer</text>
-      <rect class="replacement-screen" x="22" y="195" width="156" height="111" rx="9"/>
-      <rect class="replacement-screen replacement-new" x="302" y="195" width="156" height="111" rx="9"/>
-      <circle class="replacement-camera" cx="100" cy="204" r="2"/><circle class="replacement-camera" cx="380" cy="204" r="2"/>
-      <use href="#replacement-chip" class="replacement-old-key" x="68" y="221"/>
-      <use href="#replacement-chip" class="replacement-new-key" x="348" y="221"/>
-      <path class="replacement-base" d="M13 306H187L182 313Q180 317 174 317H26Q20 317 18 313Z"/>
-      <path class="replacement-base replacement-new-base" d="M293 306H467L462 313Q460 317 454 317H306Q300 317 298 313Z"/>
-      <path class="replacement-notch" d="M81 308h38m242 0h38"/>
-      <text class="replacement-key-label" x="100" y="341">Device key</text>
-      <text class="replacement-key-label replacement-new-label" x="380" y="341">New device key</text>
+  <text x="62" y="252" fill="#fff" font-family="Segoe UI Variable, Aptos, Segoe UI, Arial, sans-serif" font-size="62" font-weight="760" letter-spacing="-2.4">Protect your SSH keys</text>
+  <text x="62" y="326" fill="#91b4c5" font-family="Segoe UI Variable, Aptos, Segoe UI, Arial, sans-serif" font-size="62" font-weight="760" letter-spacing="-2.4">from theft.</text>
+  <text x="64" y="391" fill="#fff" font-family="Segoe UI Variable, Aptos, Segoe UI, Arial, sans-serif" font-size="29" font-weight="650" letter-spacing="-.6">Not at the cost of convenience.</text>
 
-      <text class="replacement-swap-label" x="240" y="228">REPLACE</text>
-      <path class="replacement-swap" d="M206 249H272m-13-13 13 13-13 13"/>
-      <text class="replacement-detail" x="240" y="284">No key to copy</text>
+  <text x="64" y="554" fill="#e3b766" font-family="Segoe UI Variable, Aptos, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="1.2">KEYRINGD.COM</text>
 
-      <path class="replacement-certifies" d="M100 353V370Q100 384 114 384H181M380 353V370Q380 384 366 384H299"/>
-      <rect class="replacement-passkey" x="147" y="365" width="186" height="70" rx="12"/>
-      <g class="replacement-passkey-icon" transform="translate(156 379)"><circle cx="10" cy="10" r="8"/><path d="M16 16 32 32M21 21l5-5m1 11 5-5"/></g>
-      <text class="replacement-node-title" x="257" y="393">Same passkey</text>
-      <text class="replacement-detail" x="240" y="423">Certifies the new device key</text>
-    </svg>
-  <text x="900" y="555" text-anchor="middle" font-size="25" font-weight="600">Same server setup.</text>
+  <image href="../public/images/hero-device-story.svg" x="680" y="74" width="540" height="468"/>
 </svg>
