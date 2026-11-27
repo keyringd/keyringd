@@ -39,6 +39,12 @@ You do not need to install Keyringd on your servers. On an OpenSSH server, add t
 
 The server must accept the key and signature formats you use. See link:{site-path}guides/public-key-registration/[Public key registration] for registration and compatibility details.
 
+== Does Keyringd require a CA server or online service?
+
+No. Your passkey serves as the SSH CA. Add its CA public key once to each server account's `authorized_keys`. OpenSSH verifies Device Certificates itself, so no Keyringd component is required on the server.
+
+Keyringd does not depend on a CA server, identity provider, or cloud service. There is no additional authentication service to deploy or operate, and everyday SSH connections are not affected by outages in those systems. It can also be used as an independent recovery access path when those systems are unavailable.
+
 == What if my server doesn't support SSH certificates?
 
 Register the Device Key and Passkey public keys directly. We recommend registering both: use the Device Key for everyday connections, and the passkey after replacing your computer until you register its new Device Key.
