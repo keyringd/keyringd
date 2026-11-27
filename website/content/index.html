@@ -10,10 +10,9 @@ layout: base
     <h1><span class="hero-title-primary">Protect your SSH keys</span><span class="hero-title-accent">from theft.</span></h1>
     <p class="hero-subtitle">Not at the cost of convenience.</p>
     <div class="hero-lead">
-      <p>Keyringd is an SSH agent that keeps your private keys in your computer’s hardware.</p>
-      <p>Hardware-protected keys can’t be extracted by an attacker, but they’re bound to a single device. With Keyringd, that doesn’t mean starting over when you replace your computer.</p>
-      <p>Instead of transferring the private key, Keyringd uses your passkey as an SSH certificate authority (CA) to certify a new device key for your next computer. Once your servers trust that CA, their setup stays the same across computers.</p>
-      <p>For everyday SSH, your device key does the work—without asking for your passkey each time.</p>
+      <p>Keyringd is an open-source SSH agent that uses a hardware-backed device key for everyday SSH. Each computer gets its own device key, certified during setup by your passkey acting as the SSH CA.</p>
+      <p>No CA server. No identity provider. No cloud service required.</p>
+      <p>Add the CA public key to <code>authorized_keys</code> once. The same entry continues to work even when you replace your computer. After setup, keep using SSH as usual—your device key handles each connection locally.</p>
     </div>
     <div class="actions">
       <a class="button secondary intro-video-button" href="{site.url.resolve('keyringd-in-60-seconds/')}">
