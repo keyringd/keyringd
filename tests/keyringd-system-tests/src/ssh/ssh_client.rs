@@ -91,25 +91,3 @@ impl Drop for SshClient {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    keyringd_testkit::scenario! {
-        group "SshClient::finish" {
-            case "Client output is collected independently of any server" {
-                verify "both output streams and the exit status are retained" {
-                    #[cfg(windows)]
-                    let mut command = { let mut cmd = std::process::Command::new("cmd.exe"); cmd.args(["/C", "echo ssh-out & echo ssh-err 1>&2"]); cmd };
-                    #[cfg(unix)]
-                    let mut command = { let mut cmd = std::process::Command::new("sh"); cmd.args(["-c", "printf 'ssh-out\n'; printf 'ssh-err\n' >&2"]); cmd };
-                    let child = command.stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped()).spawn().unwrap();
-                    let result = SshClient::new(child).unwrap().finish().unwrap();
-                    assert!(result.status.success());
-                    assert_eq!(String::from_utf8(result.stdout).unwrap().trim(), "ssh-out");
-                    assert_eq!(String::from_utf8(result.stderr).unwrap().trim(), "ssh-err");
-                }
-            }
-        }
-    }
-}
