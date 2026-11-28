@@ -2814,7 +2814,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-core"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "base64 0.23.1",
  "ecdsa 0.17.0",
@@ -2841,7 +2841,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-fido"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "base64 0.23.1",
  "hex-literal",
@@ -2859,7 +2859,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-fido-client"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "aes 0.9.4",
  "aes-gcm 0.11.1",
@@ -2894,7 +2894,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-linux"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "argon2",
@@ -2935,7 +2935,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-macos"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "block2",
@@ -2977,7 +2977,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-ssh-agent-protocol"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "keyringd-testkit",
  "mockall",
@@ -2990,7 +2990,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-system-tests"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "atspi",
@@ -3015,7 +3015,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-system-tests-linux-runner"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "ctrlc",
@@ -3029,7 +3029,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-system-tests-macos-runner"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "keyringd-system-tests",
@@ -3043,7 +3043,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-system-tests-windows-runner"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "keyringd-system-tests",
@@ -3059,7 +3059,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-test-authenticator"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "ecdsa 0.17.0",
  "getrandom 0.4.3",
@@ -3072,7 +3072,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-test-usbip"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "futures-util",
@@ -3093,7 +3093,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-testkit"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -3117,7 +3117,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-testkit-macros"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "keyringd-testkit",
  "proc-macro2",
@@ -3128,7 +3128,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-ui-core"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "futures-util",
  "keyringd-core",
@@ -3143,7 +3143,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-windows"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "cargo-about",
@@ -3179,7 +3179,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-wsl"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "clap",
@@ -3193,7 +3193,7 @@ dependencies = [
 
 [[package]]
 name = "keyringd-wsl-system-tests"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "keyringd-core",
@@ -6330,7 +6330,7 @@ checksum = "2f45bb2c13fec6a6cb4c0f76a7e94839e110a14ec803ec2940777a94c347bc52"
 
 [[package]]
 name = "xtask"
-version = "0.7.1"
+version = "0.7.1-nightly"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
