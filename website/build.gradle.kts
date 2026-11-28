@@ -1,7 +1,7 @@
 plugins {
     java
     id("io.mvnpm.gradle.plugin.native-java-plugin") version "1.0.0"
-    id("io.quarkus") version "3.40.1.2"
+    id("io.quarkus") version "4.0.0"
 }
 
 group = "com.keyringd"
@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation(enforcedPlatform("io.quarkus:quarkus-bom:3.40.1.2"))
+    implementation(enforcedPlatform("io.quarkus:quarkus-bom:4.0.0"))
     implementation("io.quarkiverse.roq:quarkus-roq:2.1.9")
     implementation("io.quarkiverse.roq:quarkus-roq-plugin-asciidoc-jruby:2.1.9")
 }
