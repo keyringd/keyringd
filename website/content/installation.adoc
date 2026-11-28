@@ -5,7 +5,7 @@
 :sectanchors:
 :notitle:
 
-Download the package for your operating system from https://github.com/keyringd/keyringd/releases[GitHub Releases], then follow the installation and SSH client setup steps below.
+Download the package for your operating system from https://github.com/keyringd/keyringd/releases[GitHub Releases], then follow the installation and SSH client setup steps below. Before installing, you can link:{site-path}faq/#_how_can_i_verify_a_downloaded_package[verify the release download].
 
 Complete this page before creating a Profile. Installation ends when Keyringd is running and your SSH client is configured to reach its agent; Profile creation and identity checks begin in link:{site-path}setup/[Set up Keyringd].
 

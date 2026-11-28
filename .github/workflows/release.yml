@@ -21,6 +21,9 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' }}
     permissions:
       contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     uses: ./.github/workflows/build-release-assets.yml
     with:
       channel: release

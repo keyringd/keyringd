@@ -419,6 +419,11 @@ jobs:
     name: Assemble release assets
     needs: [prepare, build_windows, build_macos, package_linux_deb, package_linux_rpm, package_wsl_deb, package_wsl_rpm]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
@@ -432,6 +437,15 @@ jobs:
           path: artifacts
       - name: Assemble release assets and checksums
         uses: ./.github/actions/assemble-release-assets
+      - name: Attest release assets
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: release-assets/SHA256SUMS.txt
+      - name: Include attestation bundle
+        env:
+          ATTESTATION_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: cp -- "$ATTESTATION_BUNDLE" release-assets/keyringd-release.sigstore.json
       - name: Upload assembled assets
         uses: actions/upload-artifact@v7
         with:
