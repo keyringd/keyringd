@@ -57,6 +57,19 @@ Yes. Keyringd works as a standard SSH agent. Configure your client once, then ke
 
 See link:{site-path}installation/[Installation] for client setup, including Git for Windows and WSL2.
 
+== How can I verify a downloaded package?
+
+Keyringd releases that include a `keyringd-release.sigstore.json` asset publish https://docs.github.com/en/actions/concepts/security/artifact-attestations[GitHub Artifact Attestations] for their packages.
+
+After downloading a package, verify it with the GitHub CLI:
+
+[source,sh]
+----
+gh attestation verify ./PATH_TO_DOWNLOADED_PACKAGE --repo keyringd/keyringd
+----
+
+Replace `PATH_TO_DOWNLOADED_PACKAGE` with the path to the downloaded package. A successful result confirms that the package was produced by a workflow in the `keyringd/keyringd` repository and has not been modified since it was attested.
+
 == Can I import my existing SSH private key?
 
 No. Keyringd generates new Device Keys inside your computer's TPM or Secure Enclave. Importing an existing private key would not undo any copies that may already exist outside the hardware.
