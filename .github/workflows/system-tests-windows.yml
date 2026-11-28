@@ -2,6 +2,9 @@ name: System tests (Windows)
 run-name: Windows system tests (${{ github.ref_name }})
 
 on:
+  push:
+    branches: [master]
+  pull_request:
   schedule:
     # Monday 03:17 JST (Sunday 18:17 UTC), away from the busy hour boundary.
     - cron: '17 18 * * 0'

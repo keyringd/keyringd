@@ -1,6 +1,9 @@
 name: Nightly
 
 on:
+  schedule:
+    # Daily 03:37 JST (18:37 UTC), away from the busy hour boundary.
+    - cron: '37 18 * * *'
   workflow_dispatch:
 
 permissions:
