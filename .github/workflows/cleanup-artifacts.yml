@@ -20,12 +20,13 @@ on:
         type: string
 
 permissions:
-  actions: write
-  contents: write
+  contents: read
 
 jobs:
-  cleanup:
+  cleanup_actions:
     runs-on: ubuntu-24.04
+    permissions:
+      actions: write
     steps:
       - name: Retain two generations of compilation caches
         uses: actions/github-script@v9
@@ -125,11 +126,18 @@ jobs:
             if (failed > 0) {
               core.setFailed('Some artifacts could not be deleted; every artifact was attempted.');
             }
+  cleanup_release_tags:
+    needs: cleanup_actions
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    steps:
       # A separate completed-run workflow also handles cancellation of Release or Nightly.
       # Do not depend on prepare_release outputs: its tag push may have succeeded
       # even when a later step failed or the run was interrupted.
       - name: Delete temporary release tags belonging to the completed run
-        if: ${{ always() }}
         uses: actions/github-script@v9
         env:
           TARGET_RUN_ID: ${{ github.event.workflow_run.id || inputs.run-id }}
