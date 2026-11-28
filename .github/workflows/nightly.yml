@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: nightly
@@ -16,6 +16,8 @@ concurrency:
 jobs:
   build_release_assets:
     if: ${{ github.ref == 'refs/heads/master' }}
+    permissions:
+      contents: write
     uses: ./.github/workflows/build-release-assets.yml
     with:
       channel: nightly
@@ -25,6 +27,8 @@ jobs:
     name: Publish GitHub Release
     needs: build_release_assets
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
