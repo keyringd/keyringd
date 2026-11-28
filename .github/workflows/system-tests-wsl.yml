@@ -2,6 +2,9 @@ name: System tests (WSL)
 run-name: WSL system tests (${{ github.ref_name }})
 
 on:
+  push:
+    branches: [master]
+  pull_request:
   schedule:
     # Monday 04:17 JST.
     - cron: '17 19 * * 0'

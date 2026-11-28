@@ -1,6 +1,9 @@
 name: Coverage and test reports
 
 on:
+  schedule:
+    # Saturday 03:47 JST (Friday 18:47 UTC), away from the busy hour boundary.
+    - cron: '47 18 * * 5'
   workflow_dispatch:
 
 permissions:
