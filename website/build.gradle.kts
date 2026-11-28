@@ -13,8 +13,8 @@ repositories {
 
 dependencies {
     implementation(enforcedPlatform("io.quarkus:quarkus-bom:3.40.1.2"))
-    implementation("io.quarkiverse.roq:quarkus-roq:2.1.9")
-    implementation("io.quarkiverse.roq:quarkus-roq-plugin-asciidoc-jruby:2.1.9")
+    implementation("io.quarkiverse.roq:quarkus-roq:2.2.1")
+    implementation("io.quarkiverse.roq:quarkus-roq-plugin-asciidoc-jruby:2.2.1")
 }
 
 java {
